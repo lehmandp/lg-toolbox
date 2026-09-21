@@ -1,27 +1,10 @@
 import Link from 'next/link'
+import Header from '@/components/header'
 
 export default function Home() {
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="bg-white">
-        <div className="max-w-[1200px] mx-auto px-8 flex items-center justify-between" style={{ height: '140px' }}>
-          <Link href="/" className="text-foreground text-lg font-medium tracking-tight">
-            LG | LOAN TOOLBOX
-          </Link>
-          <nav className="flex items-center gap-8">
-            <Link href="/library" className="text-sm text-foreground hover:text-primary transition-colors">
-              My library
-            </Link>
-            <Link href="/marketplace" className="text-sm text-foreground hover:text-primary transition-colors">
-              Marketplace
-            </Link>
-            <Link href="/admin" className="text-sm text-foreground hover:text-primary transition-colors">
-              Admin
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero Section */}
       <div className="max-w-[1200px] mx-auto px-8 py-20">
