@@ -1,31 +1,49 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* ============================================================
+   LG Loan Toolbox — design tokens
+   Flat, editorial, square. Poppins + copper on warm grey.
+   Tailwind 4 is CSS-first: tokens declared here ARE the config.
+   (There is deliberately no tailwind.config.ts — v4 ignores it.)
+   ============================================================ */
+
+@theme {
+  --color-background: #f5f5f5;
+  --color-foreground: #1e1e1e;
+  --color-primary: #a26028;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #eae7e3;
+  --color-muted: #ecebea;
+  --color-muted-foreground: #666666;
+  --color-accent: #eee9e4;
+  --color-border: #d6d4d1;
+  --color-border-input: #ccc7c1;
+  --color-ring: #a26028;
+
+  --font-sans: var(--font-poppins), Arial, Helvetica, sans-serif;
+
+  /* Square corners everywhere. Zeroing the scale means a stray
+     `rounded-lg` can never soften the aesthetic by accident. */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+}
 
 @layer base {
-  :root {
-    --background: #f5f5f5;
-    --foreground: #1e1e1e;
-    --primary: #a26028;
-    --primary-foreground: #ffffff;
-    --secondary: #eae7e3;
-    --muted: #ecebea;
-    --muted-foreground: #666666;
-    --accent: #eee9e4;
-    --border: #d6d4d1;
-    --border-input: #ccc7c1;
-    --ring: #a26028;
-  }
-
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
     font-size: 16px;
     line-height: 24px;
   }
 
   h1 {
-    color: var(--foreground);
     font-size: 36px;
     font-weight: 600;
     letter-spacing: -1.62px;
@@ -33,17 +51,23 @@
   }
 
   h2 {
-    color: var(--foreground);
     font-size: 24px;
     font-weight: 600;
     letter-spacing: -0.84px;
     line-height: 36px;
   }
+
+  h3 {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+    line-height: 30px;
+  }
 }
 
 @layer components {
   .eyebrow {
-    color: var(--primary);
+    color: var(--color-primary);
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 1.8px;
@@ -52,27 +76,79 @@
   }
 
   .btn-primary {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
     font-size: 14px;
     font-weight: 400;
     padding: 13px 24px;
     height: 49px;
-    border-radius: 0px;
-    border: 1px solid var(--primary);
+    border: 1px solid var(--color-primary);
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     transition: opacity 0.2s;
+    cursor: pointer;
   }
 
-  .btn-primary:hover {
-    opacity: 0.9;
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--color-foreground);
+    font-size: 14px;
+    font-weight: 400;
+    padding: 13px 24px;
+    height: 49px;
+    border: 1px solid var(--color-border-input);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: border-color 0.2s, color 0.2s;
+    cursor: pointer;
   }
+
+  .btn-secondary:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .input-field {
+    background-color: #ffffff;
+    border: 1px solid var(--color-border-input);
+    color: var(--color-foreground);
+    font-size: 14px;
+    padding: 13px 16px;
+    height: 49px;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-ring);
+  }
+
+  .input-field::placeholder { color: var(--color-muted-foreground); }
 
   .hairline {
-    border-color: var(--border);
+    border-color: var(--color-border);
     border-width: 1px 0 0 0;
     border-style: solid;
+  }
+
+  .label-field {
+    color: var(--color-foreground);
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1.8px;
+    line-height: 18px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
   }
 }
