@@ -4,27 +4,41 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import Logo from '@/components/logo'
 import { createClient } from '@/lib/supabase/client'
 
 export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [admin, setAdmin] = useState(false)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
+    async function resolve(nextUser: User | null) {
+      setUser(nextUser)
+      if (nextUser) {
+        // The admin_users RLS policy lets a user read their own row.
+        const { data } = await supabase
+          .from('admin_users')
+          .select('user_id')
+          .eq('user_id', nextUser.id)
+          .maybeSingle()
+        setAdmin(data !== null)
+      } else {
+        setAdmin(false)
+      }
       setReady(true)
-    })
+    }
+
+    supabase.auth.getUser().then(({ data }) => resolve(data.user))
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setReady(true)
+      resolve(session?.user ?? null)
     })
 
     return () => subscription.unsubscribe()
@@ -37,12 +51,11 @@ export default function Header() {
     router.refresh()
   }
 
-  const navItems = user
-    ? [
-        { label: 'My library', href: '/library' },
-        { label: 'Marketplace', href: '/marketplace' },
-      ]
-    : [{ label: 'Marketplace', href: '/marketplace' }]
+  const navItems = [
+    ...(user ? [{ label: 'My library', href: '/library' }] : []),
+    { label: 'Marketplace', href: '/marketplace' },
+    ...(admin ? [{ label: 'Admin', href: '/admin' }] : []),
+  ]
 
   return (
     <header className="bg-white">
@@ -50,8 +63,8 @@ export default function Header() {
         className="mx-auto flex max-w-[1200px] items-center justify-between px-8"
         style={{ height: '140px' }}
       >
-        <Link href="/" className="text-lg font-medium tracking-tight text-foreground">
-          LG | LOAN TOOLBOX
+        <Link href="/" aria-label="LG Loan Toolbox home">
+          <Logo />
         </Link>
 
         <nav className="flex items-center gap-8">
@@ -61,6 +74,7 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={`text-sm transition-colors ${
                   isActive ? 'text-primary' : 'text-foreground hover:text-primary'
                 }`}
@@ -70,8 +84,7 @@ export default function Header() {
             )
           })}
 
-          {/* Render nothing until auth state resolves, to avoid a flash of
-              the wrong call to action. */}
+          {/* Render nothing until auth resolves, to avoid flashing the wrong CTA. */}
           {ready &&
             (user ? (
               <button

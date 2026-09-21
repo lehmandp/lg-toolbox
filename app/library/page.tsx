@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import Header from '@/components/header'
 import ToolCard from '@/components/tool-card'
+import { CountBadge, EmptyState } from '@/components/ui'
 import { createClient } from '@/lib/supabase/server'
 import { getViewer } from '@/lib/auth'
 import { isProTool, type Tool, type ToolWithState } from '@/lib/types'
@@ -34,29 +35,54 @@ export default async function LibraryPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <div className="hairline" />
 
-      <div className="mx-auto max-w-[1200px] px-8 py-20">
-        <div className="mb-6 flex items-baseline justify-between">
-          <div className="eyebrow">MY LIBRARY</div>
+      <div className="mx-auto max-w-[1200px] px-8 pb-24 pt-16">
+        {/* Hero */}
+        <div className="grid gap-12 md:grid-cols-2 md:items-start">
+          <div>
+            <div className="eyebrow mb-6">YOUR LIBRARY</div>
+            <h1>
+              Your tools.
+              <br />
+              <span className="text-primary">All in one place.</span>
+            </h1>
+          </div>
+
+          <div className="flex flex-col items-start gap-8 md:items-start">
+            <p className="max-w-sm text-muted-foreground">
+              Choose tools from the marketplace and keep them here.
+            </p>
+            <Link href="/marketplace" className="btn-primary">
+              <span className="text-xl leading-none">+</span>
+              Add a tool
+            </Link>
+          </div>
+        </div>
+
+        <div className="hairline my-14" />
+
+        {/* Section heading */}
+        <div className="mb-6 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <h2>My library</h2>
+            <CountBadge value={items.length} />
+          </div>
           <span className="text-sm text-muted-foreground">
-            {viewer.isPro ? 'Pro plan active' : 'Free plan'}
+            {viewer.isPro ? 'Pro plan active.' : 'Your selected tools.'}
           </span>
         </div>
 
-        <h1 className="mb-4">
-          {viewer.user.user_metadata?.full_name
-            ? `Welcome back, ${String(viewer.user.user_metadata.full_name).split(' ')[0]}`
-            : 'Your tools'}
-        </h1>
-
-        <p className="mb-16 max-w-xl text-sm text-muted-foreground">
-          Everything you have added. Launch a tool to open it in a new tab.
-        </p>
+        {/* Tabs */}
+        <div className="mb-12 border-b border-border">
+          <span className="tab" data-active="true">
+            All tools
+            <span className="tab-count">{items.length}</span>
+          </span>
+        </div>
 
         {hasLapsed && (
           <div className="mb-12 border border-primary bg-white px-6 py-5">
-            <p className="text-sm text-foreground">
+            <p className="text-sm">
               Some tools in your library need an active Pro subscription.{' '}
               <Link href="/upgrade" className="border-b border-primary pb-px text-primary">
                 Reactivate Pro
@@ -66,18 +92,12 @@ export default async function LibraryPage() {
         )}
 
         {items.length === 0 ? (
-          <div className="border border-border bg-white p-16 text-center">
-            <div className="eyebrow mb-6">EMPTY LIBRARY</div>
-            <h2 className="mb-4">No tools yet</h2>
-            <p className="mx-auto mb-10 max-w-md text-sm text-muted-foreground">
-              Browse the marketplace and add the tools you want to use. Free tools are
-              available instantly.
-            </p>
-            <Link href="/marketplace" className="btn-primary">
-              <span className="text-xl">+</span>
-              Browse marketplace
-            </Link>
-          </div>
+          <EmptyState
+            title="Make this toolbox yours."
+            body="Browse the marketplace and add the tools you want to use."
+            actionHref="/marketplace"
+            actionLabel="Browse marketplace"
+          />
         ) : (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {items.map((tool) => (

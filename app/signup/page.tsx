@@ -58,7 +58,7 @@ function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label htmlFor="fullName" className="label-field">Full name</label>
+        <label htmlFor="fullName" className="field-label">Full name</label>
         <input
           id="fullName"
           type="text"
@@ -66,13 +66,13 @@ function SignupForm() {
           autoComplete="name"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="input-field"
+          className="field-input"
           placeholder="Jane Originator"
         />
       </div>
 
       <div>
-        <label htmlFor="email" className="label-field">Email</label>
+        <label htmlFor="email" className="field-label">Email</label>
         <input
           id="email"
           type="email"
@@ -80,13 +80,13 @@ function SignupForm() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="input-field"
+          className="field-input"
           placeholder="you@company.com"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="label-field">Password</label>
+        <label htmlFor="password" className="field-label">Password</label>
         <input
           id="password"
           type="password"
@@ -94,7 +94,7 @@ function SignupForm() {
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="input-field"
+          className="field-input"
           placeholder="At least 8 characters"
         />
       </div>
@@ -129,7 +129,6 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <div className="hairline" />
       <div className="mx-auto max-w-[480px] px-8 py-20">
         <div className="eyebrow mb-6">GET STARTED</div>
         <h1 className="mb-4">Create your account</h1>

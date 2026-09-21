@@ -21,9 +21,13 @@
   --color-ring: #a26028;
 
   --font-sans: var(--font-poppins), Arial, Helvetica, sans-serif;
+  /* Logo lockup only — never for body copy. */
+  --font-display: var(--font-oswald), "Arial Narrow", sans-serif;
 
   /* Square corners everywhere. Zeroing the scale means a stray
-     `rounded-lg` can never soften the aesthetic by accident. */
+     `rounded-lg` can never soften the aesthetic by accident. The two
+     deliberate exceptions — the toggle and the modal ring — set their
+     radius explicitly in CSS below. */
   --radius-xs: 0px;
   --radius-sm: 0px;
   --radius-md: 0px;
@@ -58,14 +62,16 @@
   }
 
   h3 {
-    font-size: 20px;
+    font-size: 25px;
     font-weight: 500;
-    letter-spacing: -0.4px;
-    line-height: 30px;
+    letter-spacing: -0.625px;
+    line-height: 37.5px;
   }
 }
 
 @layer components {
+  /* --- Labels ------------------------------------------------ */
+
   .eyebrow {
     color: var(--color-primary);
     font-size: 12px;
@@ -75,11 +81,14 @@
     text-transform: uppercase;
   }
 
+  /* --- Buttons ----------------------------------------------- */
+
   .btn-primary {
     background-color: var(--color-primary);
     color: var(--color-primary-foreground);
     font-size: 14px;
     font-weight: 400;
+    line-height: 21px;
     padding: 13px 24px;
     height: 49px;
     border: 1px solid var(--color-primary);
@@ -99,6 +108,7 @@
     color: var(--color-foreground);
     font-size: 14px;
     font-weight: 400;
+    line-height: 21px;
     padding: 13px 24px;
     height: 49px;
     border: 1px solid var(--color-border-input);
@@ -117,23 +127,94 @@
 
   .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .input-field {
+  /* Text link / secondary CTA. The rule is always on, not on hover. */
+  .link-rule {
+    color: var(--color-primary);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 21px;
+    border-bottom: 1px solid var(--color-primary);
+    padding-bottom: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.2s;
+  }
+
+  .link-rule:hover { opacity: 0.7; }
+
+  /* --- Form controls ----------------------------------------- */
+
+  .field-label {
+    color: var(--color-foreground);
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 19px;
+    margin-bottom: 6px;
+  }
+
+  .field-input {
     background-color: #ffffff;
     border: 1px solid var(--color-border-input);
     color: var(--color-foreground);
-    font-size: 14px;
-    padding: 13px 16px;
-    height: 49px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 19px;
+    padding: 10px 12px;
+    height: 41px;
     width: 100%;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .input-field:focus {
+  textarea.field-input {
+    height: 70px;
+    resize: vertical;
+  }
+
+  .field-input:focus {
     outline: none;
-    border-color: var(--color-ring);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(162, 96, 40, 0.12);
   }
 
-  .input-field::placeholder { color: var(--color-muted-foreground); }
+  .field-input::placeholder { color: var(--color-muted-foreground); }
+
+  .field-help {
+    color: var(--color-muted-foreground);
+    font-size: 13px;
+    line-height: 19px;
+    margin-top: 6px;
+  }
+
+  /* The only rounded element in the system. */
+  .toggle-track {
+    background-color: #e8e8e8;
+    border-radius: 999px;
+    height: 18px;
+    width: 34px;
+    position: relative;
+    flex-shrink: 0;
+    transition: background-color 0.2s;
+    cursor: pointer;
+  }
+
+  .toggle-track[data-on='true'] { background-color: var(--color-primary); }
+
+  .toggle-knob {
+    background-color: #ffffff;
+    border-radius: 999px;
+    height: 14px;
+    width: 14px;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+  }
+
+  .toggle-track[data-on='true'] .toggle-knob { transform: translateX(16px); }
+
+  /* --- Structure --------------------------------------------- */
 
   .hairline {
     border-color: var(--color-border);
@@ -141,14 +222,88 @@
     border-style: solid;
   }
 
-  .label-field {
-    color: var(--color-foreground);
-    display: block;
-    font-size: 12px;
+  /* Small square outline chip beside a section heading. */
+  .count-badge {
+    border: 1px solid var(--color-border);
+    color: var(--color-muted-foreground);
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 1.8px;
-    line-height: 18px;
-    margin-bottom: 8px;
-    text-transform: uppercase;
+    line-height: 16px;
+    padding: 2px 6px;
+    display: inline-block;
   }
+
+  .tab {
+    color: var(--color-muted-foreground);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 21px;
+    padding: 8px 0;
+    border-bottom: 2px solid transparent;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    transition: color 0.2s;
+    cursor: pointer;
+  }
+
+  .tab:hover { color: var(--color-foreground); }
+
+  .tab[data-active='true'] {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  .tab-count { font-size: 11px; }
+
+  /* --- Modal -------------------------------------------------- */
+
+  .modal-scrim {
+    background-color: rgba(30, 30, 30, 0.18);
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 16px;
+    overflow-y: auto;
+    z-index: 50;
+  }
+
+  /* No drop shadow — a 1px ring does the lifting. */
+  .modal-panel {
+    background-color: #ffffff;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+    padding: 28px;
+    width: 512px;
+    max-width: 100%;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: normal;
+    line-height: 24px;
+  }
+
+  .modal-subtitle {
+    color: var(--color-muted-foreground);
+    font-size: 13px;
+    line-height: 19px;
+    margin-top: 4px;
+  }
+
+  .modal-close {
+    color: var(--color-muted-foreground);
+    font-size: 20px;
+    line-height: 1;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+  }
+
+  .modal-close:hover { color: var(--color-foreground); }
 }

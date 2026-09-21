@@ -34,3 +34,6 @@ yarn-error.log*
 
 # local editor/agent tooling
 /.claude
+
+# reference screenshots, not for deploy
+/public/_tmp

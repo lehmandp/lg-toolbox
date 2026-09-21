@@ -37,7 +37,7 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label htmlFor="email" className="label-field">Email</label>
+        <label htmlFor="email" className="field-label">Email</label>
         <input
           id="email"
           type="email"
@@ -45,13 +45,13 @@ function LoginForm() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="input-field"
+          className="field-input"
           placeholder="you@company.com"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="label-field">Password</label>
+        <label htmlFor="password" className="field-label">Password</label>
         <input
           id="password"
           type="password"
@@ -59,7 +59,7 @@ function LoginForm() {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="input-field"
+          className="field-input"
           placeholder="Your password"
         />
       </div>
@@ -88,7 +88,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <div className="hairline" />
       <div className="mx-auto max-w-[480px] px-8 py-20">
         <div className="eyebrow mb-6">WELCOME BACK</div>
         <h1 className="mb-10">Sign in</h1>

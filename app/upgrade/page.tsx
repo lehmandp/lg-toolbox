@@ -78,7 +78,6 @@ export default function UpgradePage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <div className="hairline" />
 
       <div className="mx-auto max-w-[560px] px-8 py-20">
         <div className="eyebrow mb-6">LG TOOLBOX PRO</div>

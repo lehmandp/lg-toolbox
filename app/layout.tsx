@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, Oswald } from "next/font/google";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -7,6 +7,14 @@ const poppins = Poppins({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-poppins",
+});
+
+/** Logo wordmark only — condensed grotesque for the LG monogram and lockup. */
+const oswald = Oswald({
+  weight: ["500", "700"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-oswald",
 });
 
 export const metadata: Metadata = {
@@ -20,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en" className={`${poppins.variable} ${oswald.variable}`}>
       <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
       </body>
