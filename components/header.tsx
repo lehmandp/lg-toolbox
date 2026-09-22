@@ -14,35 +14,56 @@ export default function Header() {
   const [admin, setAdmin] = useState(false)
   const [ready, setReady] = useState(false)
 
+  // Track the session only. Deliberately does NOT call the database from
+  // inside onAuthStateChange: the Supabase client holds an internal lock
+  // while that callback runs, and awaiting another Supabase call inside it
+  // can deadlock, so the admin check would silently never resolve.
   useEffect(() => {
     const supabase = createClient()
 
-    async function resolve(nextUser: User | null) {
-      setUser(nextUser)
-      if (nextUser) {
-        // The admin_users RLS policy lets a user read their own row.
-        const { data } = await supabase
-          .from('admin_users')
-          .select('user_id')
-          .eq('user_id', nextUser.id)
-          .maybeSingle()
-        setAdmin(data !== null)
-      } else {
-        setAdmin(false)
-      }
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
       setReady(true)
-    }
-
-    supabase.auth.getUser().then(({ data }) => resolve(data.user))
+    })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      resolve(session?.user ?? null)
+      setUser(session?.user ?? null)
+      setReady(true)
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Admin lookup runs in its own effect, outside the auth callback.
+  useEffect(() => {
+    if (!user) {
+      setAdmin(false)
+      return
+    }
+
+    let cancelled = false
+    const supabase = createClient()
+
+    supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          // Most likely a missing RLS select policy on admin_users.
+          console.error('[header] admin check failed:', error.message)
+        }
+        setAdmin(data !== null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   async function handleSignOut() {
     const supabase = createClient()
