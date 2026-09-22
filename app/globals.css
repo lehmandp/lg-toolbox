@@ -256,6 +256,25 @@
 
   .tab-count { font-size: 11px; }
 
+
+  /* --- Logo ---------------------------------------------------- */
+
+  /* The monogram is a mask rather than an <img>, so the mark takes
+     currentColor and sits correctly on any background. */
+  .logo-monogram {
+    background-color: currentColor;
+    -webkit-mask-image: url('/lg-monogram.png');
+    mask-image: url('/lg-monogram.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    display: block;
+    flex-shrink: 0;
+  }
+
   /* --- Modal -------------------------------------------------- */
 
   .modal-scrim {
