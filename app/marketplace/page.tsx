@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import Header from '@/components/header'
 import MarketplaceGrid from '@/components/marketplace-grid'
-import { RuleLink } from '@/components/ui'
 import { createClient } from '@/lib/supabase/server'
 import { getViewer } from '@/lib/auth'
 import { isProTool, type Tool, type ToolWithState } from '@/lib/types'
@@ -16,7 +15,7 @@ export default async function MarketplacePage() {
     .from('tools')
     .select('*')
     .eq('published', true)
-    .order('monthly_price', { ascending: true })
+    .order('display_order', { ascending: true })
     .order('name', { ascending: true })
 
   let libraryIds = new Set<string>()
@@ -37,39 +36,44 @@ export default async function MarketplacePage() {
   return (
     <div className="min-h-screen">
       <Header />
-
-      <div className="mx-auto max-w-[1200px] px-8 pb-24 pt-16">
-        {/* Hero */}
-        <div className="grid gap-12 md:grid-cols-2 md:items-start">
+      <main className="mx-auto max-w-[1200px] px-8 pb-24">
+        <section className="grid gap-12 py-14 md:grid-cols-[1fr_420px] md:items-end">
           <div>
-            <div className="eyebrow mb-6">MARKETPLACE</div>
-            <h1>
-              Every tool.
-              <br />
-              <span className="text-primary">One place.</span>
-            </h1>
+            <div className="eyebrow mb-3">MARKETPLACE</div>
+            <h1>Find the tools<br />you actually use.</h1>
+            <p className="mt-4 max-w-2xl text-[15px] text-muted-foreground">
+              Add free calculators and workflow tools to your toolbox. Premium software can
+              stay independent while still being available from the same LG Toolbox account.
+            </p>
           </div>
 
-          <div className="flex flex-col items-start gap-8">
-            <p className="max-w-sm text-muted-foreground">
-              Free tools are available to every account. Pro tools are unlocked by a
-              single $100/month subscription — no per-tool billing.
+          <div className="border-l border-border pl-7">
+            <strong className="mb-1 block text-sm">
+              Your account: {viewer?.isPro ? 'Pro' : 'Free'}
+            </strong>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Free tools can be added immediately. Premium tools unlock with your account access.
             </p>
             {!viewer ? (
-              <Link href="/signup" className="btn-primary">
-                <span className="text-xl leading-none">+</span>
-                Get started free
-              </Link>
-            ) : (
-              !viewer.isPro && <RuleLink href="/upgrade">Unlock all for $100/month</RuleLink>
-            )}
+              <Link href="/signup" className="link-rule">Create free account ↗</Link>
+            ) : !viewer.isPro ? (
+              <Link href="/upgrade" className="link-rule">View premium access ↗</Link>
+            ) : null}
           </div>
+        </section>
+
+        <div className="hairline mb-8" />
+
+        <div className="mb-5 flex items-end justify-between gap-5">
+          <div>
+            <div className="eyebrow mb-2">AVAILABLE TOOLS</div>
+            <h2>Marketplace</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">{items.length} tools available</span>
         </div>
 
-        <div className="hairline my-14" />
-
         <MarketplaceGrid tools={items} signedIn={Boolean(viewer)} />
-      </div>
+      </main>
     </div>
   )
 }
