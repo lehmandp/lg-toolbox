@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Header from '@/components/header'
 import MarketplaceGrid from '@/components/marketplace-grid'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getViewer } from '@/lib/auth'
 import { isProTool, type Tool, type ToolWithState } from '@/lib/types'
 
@@ -11,12 +11,19 @@ export default async function MarketplacePage() {
   const supabase = await createClient()
   const viewer = await getViewer()
 
-  const { data: tools } = await supabase
+  // Published catalog is public data. Load it server-side with the service role
+  // so marketplace visibility does not depend on a caller's RLS/admin state.
+  const catalog = createAdminClient()
+  const { data: tools, error: toolsError } = await catalog
     .from('tools')
     .select('*')
     .eq('published', true)
     .order('display_order', { ascending: true })
     .order('name', { ascending: true })
+
+  if (toolsError) {
+    console.error('[marketplace] catalog load failed:', toolsError.message)
+  }
 
   let libraryIds = new Set<string>()
   if (viewer) {
