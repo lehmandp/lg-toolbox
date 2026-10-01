@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import OriginatorEngineNav from './nav'
-import { DEFAULT_SETTINGS, readSettings, writeSettings, type EngineSettings } from './storage'
+import { DEFAULT_SETTINGS, type EngineSettings } from './storage'
 
 const weekly = [
   ['Face-to-Face','weeklyFace'],['Break Bread','weeklyBread'],['Great Calls','weeklyCalls'],
@@ -16,7 +16,17 @@ export default function OriginatorEngineSettings() {
   const [s,setS] = useState<EngineSettings>(DEFAULT_SETTINGS)
   const [saved,setSaved] = useState(false)
 
-  useEffect(()=>setS(readSettings()),[])
+  useEffect(()=>{
+    let cancelled = false
+    fetch('/api/originator-engine/settings', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Could not load settings.')
+        const body = await res.json()
+        if (!cancelled) setS({ ...DEFAULT_SETTINGS, ...(body.settings ?? {}) })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  },[])
 
   const plan = useMemo(()=>{
     const rev=s.compType==='flat'?Number(s.compFlat):Number(s.avgLoan)*(Number(s.compBps)/10000)
@@ -28,8 +38,13 @@ export default function OriginatorEngineSettings() {
   function update(key:keyof EngineSettings,value:string|number) {
     setS(prev=>({...prev,[key]:value}))
   }
-  function save() {
-    writeSettings(s)
+  async function save() {
+    const res = await fetch('/api/originator-engine/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: s }),
+    })
+    if (!res.ok) return
     setSaved(true)
     setTimeout(()=>setSaved(false),1800)
   }

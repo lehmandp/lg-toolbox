@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import OriginatorEngineNav from './nav'
-import { emptyActivity, readActivity, writeActivity, type ActivityEntry } from './storage'
+import { emptyActivity, type ActivityEntry } from './storage'
 
 const checks = [
   ['face','Face-to-Face'],
@@ -25,23 +25,39 @@ export default function OriginatorEngineActivity() {
   const [form,setForm] = useState<ActivityEntry>(emptyActivity())
   const [saved,setSaved] = useState(false)
 
-  useEffect(()=>setRows(readActivity()),[])
+  useEffect(()=>{
+    let cancelled = false
+    fetch('/api/originator-engine/activity', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Could not load activity.')
+        const body = await res.json()
+        if (!cancelled) setRows(body.activity ?? [])
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  },[])
 
   function update<K extends keyof ActivityEntry>(key:K,value:ActivityEntry[K]) {
     setForm(f=>({...f,[key]:value}))
   }
 
-  function save() {
-    const next:ActivityEntry = {
+  async function save() {
+    const payload = {
       ...form,
-      id: crypto.randomUUID(),
       type: mode,
-      createdAt: new Date().toISOString(),
       title: mode==='bulk' ? (form.title || 'Bulk Activity') : form.title,
     }
-    const all=[next,...rows]
-    setRows(all)
-    writeActivity(all)
+
+    const res = await fetch('/api/originator-engine/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) return
+
+    const body = await res.json()
+    setRows((current)=>[body.entry as ActivityEntry, ...current])
     setForm(emptyActivity())
     setSaved(true)
     setTimeout(()=>setSaved(false),1800)
