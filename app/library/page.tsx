@@ -31,7 +31,7 @@ export default async function LibraryPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header isAdmin={viewer.isAdmin} />
       <main className="mx-auto max-w-[1200px] px-8 pb-24">
         <section className="grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-end">
           <div>
