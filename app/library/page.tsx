@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import Header from '@/components/header'
 import ToolCard from '@/components/tool-card'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getViewer } from '@/lib/auth'
 import { isProTool, type Tool, type ToolWithState } from '@/lib/types'
 
@@ -15,13 +15,22 @@ export default async function LibraryPage() {
   const supabase = await createClient()
   const { data: rows } = await supabase
     .from('user_tools')
-    .select('added_at, tools(*)')
+    .select('tool_id, added_at')
     .eq('user_id', viewer.user.id)
     .order('added_at', { ascending: false })
 
-  const items: ToolWithState[] = (rows ?? [])
-    .map((row) => row.tools as unknown as Tool | null)
-    .filter((t): t is Tool => Boolean(t))
+  const ids = (rows ?? []).map((row) => row.tool_id)
+  let tools: Tool[] = []
+
+  if (ids.length > 0) {
+    const { data } = await createAdminClient()
+      .from('tools')
+      .select('*')
+      .in('id', ids)
+    tools = (data ?? []) as Tool[]
+  }
+
+  const items: ToolWithState[] = tools
     .sort((a, b) => (a.display_order ?? 100) - (b.display_order ?? 100))
     .map((tool) => ({
       ...tool,
