@@ -22,7 +22,7 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header isAdmin />
       <div className="mx-auto max-w-[1200px] px-8 pb-24 pt-16">
         <AdminCatalog tools={(tools ?? []) as Tool[]} />
       </div>
