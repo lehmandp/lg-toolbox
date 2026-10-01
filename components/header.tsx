@@ -34,11 +34,11 @@ export default function Header() {
     }
     let cancelled = false
     const supabase = createClient()
-    supabase.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle()
+    supabase.rpc('is_admin')
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) console.error('[header] admin check failed:', error.message)
-        setAdmin(data !== null)
+        setAdmin(data === true)
       })
     return () => { cancelled = true }
   }, [user])
