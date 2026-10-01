@@ -35,7 +35,7 @@ export default async function MarketplacePage() {
 
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header isAdmin={viewer?.isAdmin ?? false} />
       <main className="mx-auto max-w-[1200px] px-8 pb-24">
         <section className="grid gap-12 py-14 md:grid-cols-[1fr_420px] md:items-end">
           <div>
