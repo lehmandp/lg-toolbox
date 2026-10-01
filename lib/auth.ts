@@ -2,6 +2,8 @@ import 'server-only'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 
+const OWNER_ADMIN_EMAIL = 'daniel@lehmangrp.com'
+
 /** The signed-in user, or null. Verified against Supabase, not just the cookie. */
 export async function getUser(): Promise<User | null> {
   const supabase = await createClient()
@@ -24,9 +26,6 @@ export async function isAdmin(userId: string): Promise<boolean> {
 
 /**
  * True when the user has a Pro plan that is active AND not past its period end.
- *
- * Checking the date as well as the status matters: if a webhook is ever missed,
- * a stale 'active' row would otherwise grant access indefinitely.
  */
 export async function isPro(userId: string): Promise<boolean> {
   const supabase = await createClient()
@@ -52,6 +51,11 @@ export async function getViewer(): Promise<Viewer | null> {
   const user = await getUser()
   if (!user) return null
 
-  const [admin, pro] = await Promise.all([isAdmin(user.id), isPro(user.id)])
-  return { user, isAdmin: admin, isPro: pro }
+  const ownerAdmin = user.email?.toLowerCase() === OWNER_ADMIN_EMAIL
+  const [adminRow, pro] = await Promise.all([
+    ownerAdmin ? Promise.resolve(true) : isAdmin(user.id),
+    isPro(user.id),
+  ])
+
+  return { user, isAdmin: ownerAdmin || adminRow, isPro: pro }
 }
