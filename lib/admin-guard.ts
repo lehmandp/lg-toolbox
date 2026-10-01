@@ -1,20 +1,20 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
-import { getUser, isAdmin } from '@/lib/auth'
+import { getViewer } from '@/lib/auth'
 import type { ToolType } from '@/lib/types'
 
 type Guarded = { user: User } | { response: NextResponse }
 
 export async function requireAdmin(): Promise<Guarded> {
-  const user = await getUser()
-  if (!user) {
+  const viewer = await getViewer()
+  if (!viewer) {
     return { response: NextResponse.json({ error: 'Not signed in.' }, { status: 401 }) }
   }
-  if (!(await isAdmin(user.id))) {
+  if (!viewer.isAdmin) {
     return { response: NextResponse.json({ error: 'Admins only.' }, { status: 403 }) }
   }
-  return { user }
+  return { user: viewer.user }
 }
 
 export function toolPayload(body: Record<string, unknown>) {
