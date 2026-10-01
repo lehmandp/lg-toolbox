@@ -7,7 +7,6 @@ import { isProTool, type ToolWithState } from '@/lib/types'
 
 interface Props {
   tool: ToolWithState
-  /** Library hides "Add" and offers "Remove"; marketplace does the reverse. */
   variant: 'marketplace' | 'library'
   signedIn: boolean
 }
@@ -18,7 +17,7 @@ export default function ToolCard({ tool, variant, signedIn }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const pro = isProTool(tool)
-  const price = Number(tool.monthly_price)
+  const native = tool.tool_type === 'native'
 
   async function mutateLibrary(method: 'POST' | 'DELETE') {
     setBusy(true)
@@ -43,11 +42,14 @@ export default function ToolCard({ tool, variant, signedIn }: Props) {
     setBusy(true)
     setError(null)
     try {
-      // Pro tools hand off through a short-lived signed token; free tools
-      // just open their URL.
+      if (!tool.tool_url) throw new Error('This tool has no launch address yet.')
+
       if (!pro) {
-        if (!tool.tool_url) throw new Error('This tool has no launch URL yet.')
-        window.open(tool.tool_url, '_blank', 'noopener,noreferrer')
+        if (native && tool.tool_url.startsWith('/')) {
+          router.push(tool.tool_url)
+        } else {
+          window.open(tool.tool_url, '_blank', 'noopener,noreferrer')
+        }
         return
       }
 
@@ -67,76 +69,66 @@ export default function ToolCard({ tool, variant, signedIn }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col border border-border bg-white p-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="eyebrow">{tool.category ?? 'TOOL'}</div>
-        {pro && (
-          <span className="border border-primary px-2 py-1 text-[10px] font-medium uppercase tracking-[1.8px] text-primary">
-            Pro
+    <article className="flex min-h-[310px] flex-col border border-border bg-white">
+      <div className="min-h-[205px] border-b border-border p-5">
+        <div className="mb-[18px] flex flex-wrap gap-2">
+          <span className={
+            'border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[.08em] ' +
+            (pro ? 'border-primary bg-primary text-white' : 'border-primary text-primary')
+          }>
+            {pro ? 'Premium' : 'Free'}
           </span>
-        )}
-      </div>
+          <span className={
+            'border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[.08em] ' +
+            (native ? 'border-primary text-primary' : 'border-border text-muted-foreground')
+          }>
+            {native ? 'Native Tool' : 'Standalone App'}
+          </span>
+          {tool.category && (
+            <span className="border border-border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
+              {tool.category}
+            </span>
+          )}
+        </div>
 
-      <h3 className="mb-3">{tool.name}</h3>
-
-      <p className="mb-8 flex-1 text-sm text-muted-foreground">
-        {tool.description ?? 'No description yet.'}
-      </p>
-
-      <div className="mb-6 text-sm text-foreground">
-        {pro ? (
-          <>
-            <span className="font-medium">${price.toFixed(0)}</span>
-            <span className="text-muted-foreground"> / month · included with Pro</span>
-          </>
-        ) : (
-          <span className="font-medium">Free</span>
-        )}
-      </div>
-
-      {error && (
-        <p className="mb-4 border border-primary px-3 py-2 text-xs text-primary" role="alert">
-          {error}
+        <h3 className="mb-2 text-[21px]">{tool.name}</h3>
+        <p className="text-[13px] leading-[1.45] text-muted-foreground">
+          {tool.description ?? 'No description yet.'}
         </p>
-      )}
 
-      <div className="flex gap-3">
-        {!signedIn ? (
-          <Link href="/signup" className="btn-primary w-full">
-            Sign up to add
-          </Link>
+        <div className="mt-4 text-xs font-semibold">
+          {pro ? 'Paid Product' : 'Free'}
+          {pro && !native && <span className="font-normal text-muted-foreground"> — launches separately</span>}
+        </div>
+      </div>
+
+      <div className="mt-auto flex items-center justify-between gap-4 px-5 py-[14px]">
+        <span className="text-[10px] uppercase tracking-[.08em] text-muted-foreground">
+          {native ? 'LG Toolbox' : 'External Product'}
+        </span>
+
+        {error ? (
+          <span className="text-[10px] text-primary">{error}</span>
+        ) : !signedIn ? (
+          <Link href="/signup" className="border-b border-primary pb-px text-xs font-semibold text-primary">Sign up →</Link>
         ) : tool.locked ? (
-          <Link href="/upgrade" className="btn-primary w-full">
-            Upgrade to Pro
-          </Link>
+          <Link href="/upgrade" className="border-b border-primary pb-px text-xs font-semibold text-primary">Upgrade →</Link>
         ) : variant === 'library' ? (
-          <>
-            <button onClick={launch} disabled={busy} className="btn-primary flex-1">
-              {busy ? 'Working…' : 'Launch'}
-            </button>
-            <button
-              onClick={() => mutateLibrary('DELETE')}
-              disabled={busy}
-              className="btn-secondary"
-              aria-label={`Remove ${tool.name} from library`}
-            >
-              Remove
-            </button>
-          </>
+          <button onClick={launch} disabled={busy} className="border-b border-primary pb-px text-xs font-semibold text-primary">
+            {busy ? 'Opening…' : native ? 'Open Tool →' : 'Launch →'}
+          </button>
         ) : tool.inLibrary ? (
-          <Link href="/library" className="btn-secondary w-full">
-            In your library
-          </Link>
+          <span className="border border-border px-3 py-2 text-[11px] font-semibold text-muted-foreground">Added</span>
         ) : (
           <button
-            onClick={() => mutateLibrary('POST')}
+            onClick={()=>mutateLibrary('POST')}
             disabled={busy}
-            className="btn-primary w-full"
+            className="border border-primary px-3 py-2 text-[11px] font-semibold text-primary"
           >
-            {busy ? 'Adding…' : 'Add to library'}
+            {busy ? 'Adding…' : '+ Add Tool'}
           </button>
         )}
       </div>
-    </div>
+    </article>
   )
 }
