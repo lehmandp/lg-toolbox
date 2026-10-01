@@ -7,11 +7,10 @@ import type { User } from '@supabase/supabase-js'
 import Logo from '@/components/logo'
 import { createClient } from '@/lib/supabase/client'
 
-export default function Header() {
+export default function Header({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
-  const [admin, setAdmin] = useState(false)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -27,21 +26,6 @@ export default function Header() {
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (!user) {
-      setAdmin(false)
-      return
-    }
-    let cancelled = false
-    const supabase = createClient()
-    supabase.rpc('is_admin')
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) console.error('[header] admin check failed:', error.message)
-        setAdmin(data === true)
-      })
-    return () => { cancelled = true }
-  }, [user])
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -53,7 +37,7 @@ export default function Header() {
   const navItems = [
     ...(user ? [{ label: 'My Toolbox', href: '/library' }] : []),
     { label: 'Marketplace', href: '/marketplace' },
-    ...(admin ? [{ label: 'Admin', href: '/admin' }] : []),
+    ...(isAdmin ? [{ label: 'Admin', href: '/admin' }] : []),
   ]
 
   return (
