@@ -14,55 +14,33 @@ export default function Header() {
   const [admin, setAdmin] = useState(false)
   const [ready, setReady] = useState(false)
 
-  // Track the session only. Deliberately does NOT call the database from
-  // inside onAuthStateChange: the Supabase client holds an internal lock
-  // while that callback runs, and awaiting another Supabase call inside it
-  // can deadlock, so the admin check would silently never resolve.
   useEffect(() => {
     const supabase = createClient()
-
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
       setReady(true)
     })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       setReady(true)
     })
-
     return () => subscription.unsubscribe()
   }, [])
 
-  // Admin lookup runs in its own effect, outside the auth callback.
   useEffect(() => {
     if (!user) {
       setAdmin(false)
       return
     }
-
     let cancelled = false
     const supabase = createClient()
-
-    supabase
-      .from('admin_users')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    supabase.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return
-        if (error) {
-          // Most likely a missing RLS select policy on admin_users.
-          console.error('[header] admin check failed:', error.message)
-        }
+        if (error) console.error('[header] admin check failed:', error.message)
         setAdmin(data !== null)
       })
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [user])
 
   async function handleSignOut() {
@@ -73,61 +51,64 @@ export default function Header() {
   }
 
   const navItems = [
-    ...(user ? [{ label: 'My library', href: '/library' }] : []),
+    ...(user ? [{ label: 'My Toolbox', href: '/library' }] : []),
     { label: 'Marketplace', href: '/marketplace' },
     ...(admin ? [{ label: 'Admin', href: '/admin' }] : []),
   ]
 
   return (
-    <header className="bg-white">
-      <div
-        className="mx-auto flex max-w-[1200px] items-center justify-between px-8"
-        style={{ height: '140px' }}
-      >
-        <Link href="/" aria-label="LG Loan Toolbox home">
+    <header className="border-b border-border bg-white">
+      <div className="mx-auto flex min-h-[72px] max-w-[1200px] items-center justify-between gap-6 px-8 py-4">
+        <Link href={user ? '/library' : '/'} aria-label="LG Loan Toolbox home">
           <Logo />
         </Link>
 
-        <nav className="flex items-center gap-8">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActive ? 'page' : undefined}
-                className={`text-sm transition-colors ${
-                  isActive ? 'text-primary' : 'text-foreground hover:text-primary'
-                }`}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-
-          {/* Render nothing until auth resolves, to avoid flashing the wrong CTA. */}
-          {ready &&
-            (user ? (
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-foreground transition-colors hover:text-primary"
-              >
-                Sign out
-              </button>
-            ) : (
-              <>
+        <div className="flex items-center gap-7">
+          <nav className="flex items-center gap-7">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
                 <Link
-                  href="/login"
-                  className="text-sm text-foreground transition-colors hover:text-primary"
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={
+                    'border-b-2 px-0 py-1 text-[13px] font-medium transition-colors ' +
+                    (isActive
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-primary')
+                  }
                 >
-                  Sign in
+                  {item.label}
                 </Link>
-                <Link href="/signup" className="btn-primary">
-                  Get started
-                </Link>
-              </>
-            ))}
-        </nav>
+              )
+            })}
+          </nav>
+
+          {ready && user && (
+            <div className="hidden items-center gap-3 border-l border-border pl-5 md:flex">
+              <div className="flex h-9 w-9 items-center justify-center bg-primary text-xs font-semibold text-white">
+                {(user.email?.slice(0, 2) ?? 'LG').toUpperCase()}
+              </div>
+              <div className="leading-tight">
+                <div className="text-xs font-medium">{user.email}</div>
+                <button
+                  onClick={handleSignOut}
+                  className="text-[10px] text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
+
+          {ready && !user && (
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="text-sm hover:text-primary">Sign in</Link>
+              <Link href="/signup" className="btn-primary">Get started</Link>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ToolModal from '@/components/tool-modal'
-import { CountBadge, EmptyState } from '@/components/ui'
 import { isProTool, type Tool } from '@/lib/types'
 
 export default function AdminCatalog({ tools }: { tools: Tool[] }) {
@@ -14,13 +13,7 @@ export default function AdminCatalog({ tools }: { tools: Tool[] }) {
   const [error, setError] = useState<string | null>(null)
 
   async function remove(tool: Tool) {
-    if (
-      !window.confirm(
-        `Delete "${tool.name}"? This also removes it from every user's library.`
-      )
-    ) {
-      return
-    }
+    if (!window.confirm(`Delete "${tool.name}"? This also removes it from every user's toolbox.`)) return
     setBusyId(tool.id)
     setError(null)
     try {
@@ -35,147 +28,108 @@ export default function AdminCatalog({ tools }: { tools: Tool[] }) {
     }
   }
 
+  const sorted = [...tools].sort((a,b)=>(a.display_order ?? 100) - (b.display_order ?? 100))
+
   return (
     <>
-      {/* Hero action */}
-      <div className="grid gap-12 md:grid-cols-2 md:items-start">
-        <div>
-          <div className="eyebrow mb-6">MASTER ADMIN</div>
-          <h1>
-            Manage the catalog.
-            <br />
-            <span className="text-primary">Built by you.</span>
-          </h1>
-        </div>
-
-        <div className="flex flex-col items-start gap-8">
-          <p className="max-w-sm text-muted-foreground">
-            Create and publish tools for your marketplace.
-          </p>
-          <button onClick={() => setCreating(true)} className="btn-primary">
-            <span className="text-xl leading-none">+</span>
-            Add a tool
-          </button>
-        </div>
-      </div>
-
-      <div className="hairline my-14" />
-
-      {/* Section heading */}
-      <div className="mb-6 flex items-center justify-between gap-6">
-        <div className="flex items-center gap-3">
-          <h2>Catalog management</h2>
-          <CountBadge value={tools.length} />
-        </div>
-        <span className="text-sm text-muted-foreground">
-          Unpublished tools are visible only to you.
-        </span>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-12 border-b border-border">
-        <span className="tab" data-active="true">
-          All tools
-          <span className="tab-count">{tools.length}</span>
-        </span>
-      </div>
-
-      {error && (
-        <p className="mb-6 border border-primary px-4 py-3 text-sm text-primary" role="alert">
-          {error}
+      <section className="pb-9">
+        <div className="eyebrow mb-3">ADMIN</div>
+        <h1>Manage the toolbox.</h1>
+        <p className="mt-4 max-w-2xl text-[15px] text-muted-foreground">
+          Build the software separately, then register it here. Published tools appear in the Marketplace automatically
+          and can be added by users to My Toolbox.
         </p>
-      )}
+      </section>
 
-      {tools.length === 0 ? (
-        <div className="flex flex-col items-center px-8 py-24 text-center">
-          <EmptyStateShim onCreate={() => setCreating(true)} />
+      <div className="hairline" />
+
+      <section className="grid gap-7 pt-8 lg:grid-cols-[390px_1fr]">
+        <div className="border border-border bg-white">
+          <div className="border-b border-border px-5 py-5">
+            <div className="eyebrow mb-2">ADD TOOL</div>
+            <h2>New marketplace item</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Create the catalog record for a tool you have already built.</p>
+          </div>
+
+          <div className="p-5">
+            <p className="mb-6 text-sm text-muted-foreground">
+              Tool name, description, category, access, destination, and publish status are all managed here.
+            </p>
+            <button onClick={()=>setCreating(true)} className="btn-primary w-full">+ Add a Tool</button>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {tools.map((tool) => (
-            <div
-              key={tool.id}
-              className="flex items-center justify-between gap-6 border border-border bg-white p-6"
-            >
-              <div className="min-w-0">
-                <div className="mb-1 flex items-center gap-3">
-                  <span className="truncate font-medium">{tool.name}</span>
-                  {isProTool(tool) ? (
-                    <span className="border border-primary px-2 py-px text-[10px] uppercase tracking-[1.8px] text-primary">
-                      Pro
-                    </span>
-                  ) : (
-                    <span className="border border-border px-2 py-px text-[10px] uppercase tracking-[1.8px] text-muted-foreground">
-                      Free
-                    </span>
-                  )}
-                  {!tool.published && (
-                    <span className="border border-border px-2 py-px text-[10px] uppercase tracking-[1.8px] text-muted-foreground">
-                      Draft
-                    </span>
-                  )}
-                </div>
-                <p className="truncate text-sm text-muted-foreground">
-                  {tool.category ?? 'Uncategorised'} · $
-                  {Number(tool.monthly_price).toFixed(0)}/mo
-                </p>
-              </div>
 
-              <div className="flex shrink-0 gap-4">
-                <button
-                  onClick={() => setEditing(tool)}
-                  className="text-sm transition-colors hover:text-primary"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => remove(tool)}
-                  disabled={busyId === tool.id}
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
-                >
-                  {busyId === tool.id ? 'Deleting…' : 'Delete'}
-                </button>
-              </div>
+        <div>
+          <div className="border border-border bg-white">
+            <div className="border-b border-border px-5 py-5">
+              <div className="eyebrow mb-2">TOOL CATALOG</div>
+              <h2>Marketplace inventory</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Edit, publish, hide, or update existing tools.</p>
             </div>
-          ))}
+
+            <div className="grid grid-cols-[1.4fr_.7fr_.8fr_.7fr_70px] gap-3 border-b border-border bg-[#fafafa] px-5 py-3 text-[9px] font-semibold uppercase tracking-[.08em] text-muted-foreground">
+              <span>Tool</span><span>Access</span><span>Type</span><span>Status</span><span></span>
+            </div>
+
+            {error && <p className="m-5 border border-primary px-4 py-3 text-sm text-primary">{error}</p>}
+
+            {sorted.length === 0 ? (
+              <div className="px-6 py-16 text-center">
+                <p className="mb-5 text-sm text-muted-foreground">No tools yet.</p>
+                <button onClick={()=>setCreating(true)} className="btn-primary">Add your first tool</button>
+              </div>
+            ) : (
+              sorted.map((tool)=>(
+                <div key={tool.id} className="grid grid-cols-[1.4fr_.7fr_.8fr_.7fr_70px] items-center gap-3 border-b border-border px-5 py-4 last:border-b-0">
+                  <div className="min-w-0">
+                    <strong className="block truncate text-[13px]">{tool.name}</strong>
+                    <span className="text-[11px] text-muted-foreground">{tool.category ?? 'Uncategorised'}</span>
+                  </div>
+
+                  <span className={
+                    'justify-self-start border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[.08em] ' +
+                    (isProTool(tool) ? 'border-primary bg-primary text-white' : 'border-primary text-primary')
+                  }>
+                    {isProTool(tool) ? 'Premium' : 'Free'}
+                  </span>
+
+                  <span className={
+                    'justify-self-start border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[.08em] ' +
+                    (tool.tool_type === 'native' ? 'border-primary text-primary' : 'border-border text-muted-foreground')
+                  }>
+                    {tool.tool_type === 'native' ? 'Native' : 'External'}
+                  </span>
+
+                  <span className={'text-[11px] ' + (tool.published ? 'font-semibold text-primary' : 'text-muted-foreground')}>
+                    {tool.published ? 'Published' : 'Hidden'}
+                  </span>
+
+                  <div className="flex flex-col items-start gap-2">
+                    <button onClick={()=>setEditing(tool)} className="border-b border-primary pb-px text-[11px] font-semibold text-primary">Edit</button>
+                    <button
+                      onClick={()=>remove(tool)}
+                      disabled={busyId===tool.id}
+                      className="text-[10px] text-muted-foreground hover:text-primary"
+                    >
+                      {busyId===tool.id ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="mt-5 border border-border bg-white px-5 py-4">
+            <strong className="mb-1 block text-xs">Simple workflow</strong>
+            <p className="text-xs text-muted-foreground">
+              Build and approve the actual tool first. Then add or edit one record here. LG Toolbox handles the Marketplace listing automatically.
+            </p>
+          </div>
         </div>
-      )}
+      </section>
 
-      {creating && <ToolModal onClose={() => setCreating(false)} />}
-      {editing && <ToolModal tool={editing} onClose={() => setEditing(null)} />}
+      {creating && <ToolModal onClose={()=>setCreating(false)} />}
+      {editing && <ToolModal tool={editing} onClose={()=>setEditing(null)} />}
     </>
-  )
-}
-
-/** Empty state whose action opens the modal rather than navigating. */
-function EmptyStateShim({ onCreate }: { onCreate: () => void }) {
-  return (
-    <>
-      <span className="mb-6 text-primary">
-        <CubeMark />
-      </span>
-      <h3 className="mb-2">Start your catalog.</h3>
-      <p className="mb-8 max-w-md text-sm text-muted-foreground">
-        Add your first tool and publish it to the marketplace.
-      </p>
-      <button onClick={onCreate} className="link-rule">
-        Create your first tool
-        <span aria-hidden>↗</span>
-      </button>
-    </>
-  )
-}
-
-function CubeMark() {
-  return (
-    <svg
-      width="32" height="32" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.5"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden
-    >
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      <path d="m3.3 7 8.7 5 8.7-5" />
-      <path d="M12 22V12" />
-    </svg>
   )
 }

@@ -18,6 +18,9 @@ create table if not exists tools (
   tool_url text,
   repository_url text,
   published boolean default false,
+  tool_type text not null default 'native' check (tool_type in ('native','external')),
+  display_order integer not null default 100,
+  featured boolean not null default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -153,3 +156,22 @@ grant execute on function hub_pro_status(text) to service_role;
 insert into admin_users (user_id)
 select id from auth.users where lower(email) = 'daniel@lehmangrp.com'
 on conflict (user_id) do nothing;
+
+
+-- ---------------------------------------------------------------- catalog metadata ---
+-- Safe for existing installations created before tool_type/display_order/featured existed.
+alter table tools add column if not exists tool_type text not null default 'native';
+alter table tools add column if not exists display_order integer not null default 100;
+alter table tools add column if not exists featured boolean not null default false;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'tools_tool_type_check'
+  ) then
+    alter table tools
+      add constraint tools_tool_type_check check (tool_type in ('native','external'));
+  end if;
+end $$;
+
+create index if not exists tools_display_order_idx on tools (display_order);

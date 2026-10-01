@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Tool } from '@/lib/types'
+import type { Tool, ToolType } from '@/lib/types'
 
 const CATEGORIES = [
-  'Workflow',
-  'Pricing',
-  'Calculators',
-  'Compliance',
+  'Calculator',
+  'Business Planning',
+  'Qualification',
+  'Database / CRM',
   'Marketing',
-  'Analytics',
+  'Income',
+  'Planning',
   'Other',
 ]
 
 interface Props {
-  /** Present when editing; absent when creating. */
   tool?: Tool
   onClose: () => void
 }
@@ -26,16 +26,18 @@ export default function ToolModal({ tool, onClose }: Props) {
 
   const [name, setName] = useState(tool?.name ?? '')
   const [description, setDescription] = useState(tool?.description ?? '')
-  const [category, setCategory] = useState(tool?.category ?? 'Workflow')
+  const [category, setCategory] = useState(tool?.category ?? 'Calculator')
   const [monthlyPrice, setMonthlyPrice] = useState(String(tool?.monthly_price ?? '0'))
+  const [toolType, setToolType] = useState<ToolType>(tool?.tool_type ?? 'native')
+  const [displayOrder, setDisplayOrder] = useState(String(tool?.display_order ?? 100))
   const [toolUrl, setToolUrl] = useState(tool?.tool_url ?? '')
   const [repositoryUrl, setRepositoryUrl] = useState(tool?.repository_url ?? '')
   const [published, setPublished] = useState(tool?.published ?? false)
+  const [featured, setFeatured] = useState(tool?.featured ?? false)
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Escape closes, and the page behind must not scroll while open.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -54,8 +56,14 @@ export default function ToolModal({ tool, onClose }: Props) {
     setError(null)
 
     const price = Number(monthlyPrice)
+    const order = Number(displayOrder)
+
     if (Number.isNaN(price) || price < 0) {
       setError('Monthly price must be 0 or a positive number.')
+      return
+    }
+    if (Number.isNaN(order)) {
+      setError('Display order must be a number.')
       return
     }
 
@@ -69,11 +77,15 @@ export default function ToolModal({ tool, onClose }: Props) {
           description: description || null,
           category: category || null,
           monthly_price: price,
+          tool_type: toolType,
+          display_order: order,
           tool_url: toolUrl || null,
           repository_url: repositoryUrl || null,
           published,
+          featured,
         }),
       })
+
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? 'Could not save this tool.')
 
@@ -98,26 +110,25 @@ export default function ToolModal({ tool, onClose }: Props) {
       <div className="modal-panel">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
+            <div className="eyebrow mb-2">{editing ? 'EDIT TOOL' : 'ADD TOOL'}</div>
             <h2 id="tool-modal-title" className="modal-title">
-              {editing ? 'Edit tool' : 'Add a tool'}
+              {editing ? tool?.name : 'New marketplace item'}
             </h2>
             <p className="modal-subtitle">
-              Tools stay hidden until you publish them. You can change any of
-              this later.
+              This creates the catalog entry. Build the software separately, then register it here.
             </p>
           </div>
-          <button type="button" onClick={onClose} className="modal-close" aria-label="Close">
-            ×
-          </button>
+          <button type="button" onClick={onClose} className="modal-close" aria-label="Close">×</button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-[18px]">
             <label htmlFor="name" className="field-label">Tool name</label>
             <input
-              id="name" type="text" required autoFocus value={name}
+              id="name" required autoFocus value={name}
               onChange={(e) => setName(e.target.value)}
-              className="field-input" placeholder="Name of your tool"
+              className="field-input"
+              placeholder="VA Payment Calculator"
             />
           </div>
 
@@ -127,84 +138,114 @@ export default function ToolModal({ tool, onClose }: Props) {
               id="description" value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="field-input"
-              placeholder="What does this help an originator do?"
+              placeholder="What does this help a loan originator do?"
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div className="mb-[18px]">
+              <label htmlFor="category" className="field-label">Category</label>
+              <select id="category" value={category} onChange={(e)=>setCategory(e.target.value)} className="field-input">
+                {CATEGORIES.map((c)=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="mb-[18px]">
+              <label htmlFor="monthlyPrice" className="field-label">Access</label>
+              <select
+                id="monthlyPrice"
+                value={Number(monthlyPrice) > 0 ? 'premium' : 'free'}
+                onChange={(e)=>setMonthlyPrice(e.target.value === 'premium' ? '100' : '0')}
+                className="field-input"
+              >
+                <option value="free">Free</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="mb-[18px]">
+              <label htmlFor="toolType" className="field-label">Tool type</label>
+              <select id="toolType" value={toolType} onChange={(e)=>setToolType(e.target.value as ToolType)} className="field-input">
+                <option value="native">Native LG Toolbox Tool</option>
+                <option value="external">Standalone / External App</option>
+              </select>
+            </div>
+
+            <div className="mb-[18px]">
+              <label htmlFor="displayOrder" className="field-label">Display order</label>
+              <input
+                id="displayOrder" type="number" value={displayOrder}
+                onChange={(e)=>setDisplayOrder(e.target.value)}
+                className="field-input"
+              />
+            </div>
+          </div>
+
+          {Number(monthlyPrice) > 0 && (
+            <div className="mb-[18px]">
+              <label htmlFor="price" className="field-label">Monthly price ($)</label>
+              <input
+                id="price" type="number" min="0" step="0.01" value={monthlyPrice}
+                onChange={(e)=>setMonthlyPrice(e.target.value)}
+                className="field-input"
+              />
+            </div>
+          )}
+
           <div className="mb-[18px]">
-            <label htmlFor="category" className="field-label">Category</label>
-            <select
-              id="category" value={category}
-              onChange={(e) => setCategory(e.target.value)}
+            <label htmlFor="toolUrl" className="field-label">Destination route / URL</label>
+            <input
+              id="toolUrl" value={toolUrl}
+              onChange={(e)=>setToolUrl(e.target.value)}
               className="field-input"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-[18px]">
-            <label htmlFor="monthlyPrice" className="field-label">Monthly price ($)</label>
-            <input
-              id="monthlyPrice" type="number" min="0" step="0.01" value={monthlyPrice}
-              onChange={(e) => setMonthlyPrice(e.target.value)}
-              className="field-input" placeholder="0"
+              placeholder={toolType === 'native' ? '/originator-engine' : 'https://crossqual.com'}
             />
-            <p className="field-help">Use 0 for free. Set a separate price for each tool.</p>
           </div>
 
           <div className="mb-[18px]">
-            <label htmlFor="toolUrl" className="field-label">Tool address (optional)</label>
-            <input
-              id="toolUrl" type="url" value={toolUrl}
-              onChange={(e) => setToolUrl(e.target.value)}
-              className="field-input" placeholder="https://your-tool.com"
-            />
-            {Number(monthlyPrice) > 0 && (
-              <p className="field-help">
-                Paid tools open through single sign-on. Point this at the tool&apos;s
-                SSO address, e.g. https://strikeprice.com/sso
-              </p>
-            )}
-          </div>
-
-          <div className="mb-[18px]">
-            <label htmlFor="repositoryUrl" className="field-label">Repository link (optional)</label>
+            <label htmlFor="repositoryUrl" className="field-label">Repository URL <span className="font-normal text-muted-foreground">(optional)</span></label>
             <input
               id="repositoryUrl" type="url" value={repositoryUrl}
-              onChange={(e) => setRepositoryUrl(e.target.value)}
-              className="field-input" placeholder="https://github.com/your-team/your-tool"
+              onChange={(e)=>setRepositoryUrl(e.target.value)}
+              className="field-input"
+              placeholder="https://github.com/..."
             />
-            <p className="field-help">A link records the repository; it does not import its code.</p>
           </div>
 
-          <div className="mb-2 mt-6 flex items-center gap-3">
+          <div className="mb-3 flex items-center justify-between border border-border px-3 py-3">
+            <span className="text-xs font-medium">Published in Marketplace</span>
             <button
-              type="button"
-              role="switch"
-              aria-checked={published}
-              onClick={() => setPublished((p) => !p)}
-              className="toggle-track"
-              data-on={published}
+              type="button" role="switch" aria-checked={published}
+              onClick={()=>setPublished((v)=>!v)}
+              className="toggle-track" data-on={published}
             >
               <span className="toggle-knob" />
             </button>
-            <span className="text-sm">Publish in marketplace</span>
           </div>
-          <p className="field-help mb-6">
-            Paid tools display their price. Subscription checkout is not connected yet.
-          </p>
+
+          <div className="mb-6 flex items-center justify-between border border-border px-3 py-3">
+            <span className="text-xs font-medium">Featured Tool</span>
+            <button
+              type="button" role="switch" aria-checked={featured}
+              onClick={()=>setFeatured((v)=>!v)}
+              className="toggle-track" data-on={featured}
+            >
+              <span className="toggle-knob" />
+            </button>
+          </div>
 
           {error && (
-            <p className="mb-4 border border-primary px-4 py-3 text-sm text-primary" role="alert">
-              {error}
-            </p>
+            <p className="mb-4 border border-primary px-4 py-3 text-sm text-primary" role="alert">{error}</p>
           )}
 
-          <button type="submit" disabled={busy} className="btn-primary w-full">
-            {busy ? 'Saving…' : 'Save tool'}
-          </button>
+          <div className="flex gap-3">
+            <button type="submit" disabled={busy} className="btn-primary flex-1">
+              {busy ? 'Saving…' : 'Save Tool'}
+            </button>
+            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+          </div>
         </form>
       </div>
     </div>

@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import Header from '@/components/header'
 import ToolCard from '@/components/tool-card'
-import { CountBadge, EmptyState } from '@/components/ui'
 import { createClient } from '@/lib/supabase/server'
 import { getViewer } from '@/lib/auth'
 import { isProTool, type Tool, type ToolWithState } from '@/lib/types'
@@ -23,89 +22,69 @@ export default async function LibraryPage() {
   const items: ToolWithState[] = (rows ?? [])
     .map((row) => row.tools as unknown as Tool | null)
     .filter((t): t is Tool => Boolean(t))
+    .sort((a, b) => (a.display_order ?? 100) - (b.display_order ?? 100))
     .map((tool) => ({
       ...tool,
       inLibrary: true,
-      // A Pro tool stays in the library if the plan lapses, but locks.
       locked: isProTool(tool) && !viewer.isPro,
     }))
-
-  const hasLapsed = items.some((t) => t.locked)
 
   return (
     <div className="min-h-screen">
       <Header />
-
-      <div className="mx-auto max-w-[1200px] px-8 pb-24 pt-16">
-        {/* Hero */}
-        <div className="grid gap-12 md:grid-cols-2 md:items-start">
+      <main className="mx-auto max-w-[1200px] px-8 pb-24">
+        <section className="grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <div className="eyebrow mb-6">YOUR LIBRARY</div>
-            <h1>
-              Your tools.
-              <br />
-              <span className="text-primary">All in one place.</span>
-            </h1>
-          </div>
-
-          <div className="flex flex-col items-start gap-8 md:items-start">
-            <p className="max-w-sm text-muted-foreground">
-              Choose tools from the marketplace and keep them here.
+            <div className="eyebrow mb-3">MY TOOLBOX</div>
+            <h1>Your tools.<br />Ready when you are.</h1>
+            <p className="mt-4 max-w-2xl text-[15px] text-muted-foreground">
+              The tools you use live here. Native LG Toolbox modules open inside the hub,
+              while standalone products can launch into their own application.
             </p>
-            <Link href="/marketplace" className="btn-primary">
-              <span className="text-xl leading-none">+</span>
-              Add a tool
-            </Link>
           </div>
-        </div>
+          <Link href="/marketplace" className="btn-primary">+ Add Tools</Link>
+        </section>
 
-        <div className="hairline my-14" />
+        <div className="hairline" />
 
-        {/* Section heading */}
-        <div className="mb-6 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <h2>My library</h2>
-            <CountBadge value={items.length} />
+        <section className="pt-8">
+          <div className="mb-5 flex items-end justify-between gap-5">
+            <div>
+              <div className="eyebrow mb-2">IN USE</div>
+              <h2>My Tools</h2>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {items.length} {items.length === 1 ? 'tool' : 'tools'} in your toolbox
+            </span>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {viewer.isPro ? 'Pro plan active.' : 'Your selected tools.'}
-          </span>
-        </div>
 
-        {/* Tabs */}
-        <div className="mb-12 border-b border-border">
-          <span className="tab" data-active="true">
-            All tools
-            <span className="tab-count">{items.length}</span>
-          </span>
-        </div>
-
-        {hasLapsed && (
-          <div className="mb-12 border border-primary bg-white px-6 py-5">
-            <p className="text-sm">
-              Some tools in your library need an active Pro subscription.{' '}
-              <Link href="/upgrade" className="border-b border-primary pb-px text-primary">
-                Reactivate Pro
+          {items.length === 0 ? (
+            <div className="border border-dashed border-border-input px-8 py-20 text-center">
+              <h3 className="mb-2">Your toolbox is empty.</h3>
+              <p className="mb-6 text-sm text-muted-foreground">
+                Browse the marketplace and add the tools you want to use.
+              </p>
+              <Link href="/marketplace" className="btn-primary">Browse Marketplace</Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 lg:grid-cols-3">
+              {items.map((tool) => (
+                <ToolCard key={tool.id} tool={tool} variant="library" signedIn />
+              ))}
+              <Link
+                href="/marketplace"
+                className="flex min-h-[310px] flex-col items-center justify-center border border-dashed border-border-input px-7 text-center"
+              >
+                <span className="mb-4 flex h-11 w-11 items-center justify-center border border-primary text-2xl text-primary">+</span>
+                <strong className="mb-2">Add another tool</strong>
+                <span className="max-w-[220px] text-xs text-muted-foreground">
+                  Browse free tools and available products from the LG Toolbox marketplace.
+                </span>
               </Link>
-            </p>
-          </div>
-        )}
-
-        {items.length === 0 ? (
-          <EmptyState
-            title="Make this toolbox yours."
-            body="Browse the marketplace and add the tools you want to use."
-            actionHref="/marketplace"
-            actionLabel="Browse marketplace"
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((tool) => (
-              <ToolCard key={tool.id} tool={tool} variant="library" signedIn />
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   )
 }
