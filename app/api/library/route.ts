@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getUser, isPro } from '@/lib/auth'
 import { isProTool } from '@/lib/types'
 
@@ -9,14 +9,26 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Not signed in.' }, { status: 401 })
 
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { data: rows, error } = await supabase
     .from('user_tools')
-    .select('added_at, tools(*)')
+    .select('tool_id, added_at')
     .eq('user_id', user.id)
     .order('added_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ tools: data?.map((row) => row.tools) ?? [] })
+
+  const ids = (rows ?? []).map((row) => row.tool_id)
+  if (ids.length === 0) return NextResponse.json({ tools: [] })
+
+  const { data: tools, error: toolError } = await createAdminClient()
+    .from('tools')
+    .select('*')
+    .in('id', ids)
+
+  if (toolError) return NextResponse.json({ error: toolError.message }, { status: 500 })
+
+  const byId = new Map((tools ?? []).map((tool) => [tool.id, tool]))
+  return NextResponse.json({ tools: ids.map((id) => byId.get(id)).filter(Boolean) })
 }
 
 /** POST /api/library — add a tool. Body: { toolId } */
@@ -28,7 +40,7 @@ export async function POST(request: Request) {
   if (!toolId) return NextResponse.json({ error: 'toolId is required.' }, { status: 400 })
 
   const supabase = await createClient()
-  const { data: tool, error: toolError } = await supabase
+  const { data: tool, error: toolError } = await createAdminClient()
     .from('tools')
     .select('id, name, monthly_price, published')
     .eq('id', toolId)
