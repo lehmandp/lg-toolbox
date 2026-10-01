@@ -11,7 +11,7 @@ export default async function OriginatorEngineSettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
-      <Header />
+      <Header isAdmin={viewer.isAdmin} />
       <OriginatorEngineSettings />
     </div>
   )
