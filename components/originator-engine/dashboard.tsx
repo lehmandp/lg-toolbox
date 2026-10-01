@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import OriginatorEngineNav from './nav'
-import { DEFAULT_SETTINGS, readActivity, readSettings, type ActivityEntry, type EngineSettings } from './storage'
+import { DEFAULT_SETTINGS, type ActivityEntry, type EngineSettings } from './storage'
 
 const weekly = [
   ['Face-to-Face','face','weeklyFace'],
@@ -73,8 +73,29 @@ export default function OriginatorEngineDashboard() {
   const [activity,setActivity] = useState<ActivityEntry[]>([])
 
   useEffect(()=>{
-    setSettings(readSettings())
-    setActivity(readActivity())
+    let cancelled = false
+
+    async function load() {
+      const [settingsRes, activityRes] = await Promise.all([
+        fetch('/api/originator-engine/settings', { cache: 'no-store' }),
+        fetch('/api/originator-engine/activity', { cache: 'no-store' }),
+      ])
+
+      if (cancelled) return
+
+      if (settingsRes.ok) {
+        const body = await settingsRes.json()
+        setSettings({ ...DEFAULT_SETTINGS, ...(body.settings ?? {}) })
+      }
+
+      if (activityRes.ok) {
+        const body = await activityRes.json()
+        setActivity(body.activity ?? [])
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
   },[])
 
   const now = useMemo(()=>new Date(),[])
@@ -139,7 +160,7 @@ export default function OriginatorEngineDashboard() {
           <div className="rounded-[14px] border border-[#d8dee8] p-4">
             <div className="text-[10px] font-extrabold uppercase tracking-[.08em] text-[#6b7280]">Greatness Streak</div>
             <div className="mt-1 text-[31px] font-black">🔥 0 Weeks</div>
-            <div className="text-[11px] text-[#6b7280]">Historical streak calculation will move to Supabase persistence.</div>
+            <div className="text-[11px] text-[#6b7280]">Activity and settings are saved to your LG Toolbox account.</div>
             <div className="mt-4 rounded-[10px] bg-[#eef4fa] p-3">
               <div className="text-[13px] font-extrabold">{completeCount===activeTargets.length && activeTargets.length ? '✅ Greatness Week Complete' : `This Week: ${completeCount} of ${activeTargets.length} targets complete`}</div>
               <div className="mt-1 text-[11px] text-[#6b7280]">Complete every active weekly target to earn a Greatness Week.</div>
