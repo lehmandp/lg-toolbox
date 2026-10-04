@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import OriginatorEngineNav from './nav'
-import { DEFAULT_SETTINGS, type EngineSettings } from './storage'
+import { ACTIVITY_KEY, DEFAULT_SETTINGS, SETTINGS_KEY, type EngineSettings } from './storage'
 
 const weekly = [
   ['Face-to-Face','weeklyFace'],['Break Bread','weeklyBread'],['Great Calls','weeklyCalls'],
@@ -15,6 +15,8 @@ const monthly = [
 export default function OriginatorEngineSettings() {
   const [s,setS] = useState<EngineSettings>(DEFAULT_SETTINGS)
   const [saved,setSaved] = useState(false)
+  const [resetting,setResetting] = useState(false)
+  const [resetError,setResetError] = useState<string | null>(null)
 
   useEffect(()=>{
     let cancelled = false
@@ -47,6 +49,31 @@ export default function OriginatorEngineSettings() {
     if (!res.ok) return
     setSaved(true)
     setTimeout(()=>setSaved(false),1800)
+  }
+
+  async function startOver() {
+    const confirmed = window.confirm(
+      'Start over with Originator Engine?\n\nThis will permanently delete all activity history and restore your business plan, goals, and Theme Days to the original defaults. This cannot be undone.'
+    )
+    if (!confirmed) return
+
+    setResetting(true)
+    setResetError(null)
+
+    try {
+      const res = await fetch('/api/originator-engine/reset', { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? 'Could not reset Originator Engine.')
+
+      // Clear any legacy browser-saved Originator Engine data as well.
+      localStorage.removeItem(SETTINGS_KEY)
+      localStorage.removeItem(ACTIVITY_KEY)
+
+      window.location.href = '/originator-engine'
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : 'Could not reset Originator Engine.')
+      setResetting(false)
+    }
   }
 
   return (
@@ -113,11 +140,31 @@ export default function OriginatorEngineSettings() {
         </div>
       </section>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <button onClick={save} className="rounded-[10px] bg-[#1f4b7a] px-5 py-3 text-sm font-bold text-white">Save Business Plan & Settings</button>
-        <button onClick={()=>setS(DEFAULT_SETTINGS)} className="rounded-[10px] border border-[#d8dee8] bg-white px-5 py-3 text-sm font-bold">Reset Defaults</button>
+        <button onClick={()=>setS(DEFAULT_SETTINGS)} className="rounded-[10px] border border-[#d8dee8] bg-white px-5 py-3 text-sm font-bold">Restore Default Settings</button>
         {saved && <span className="text-sm font-bold text-[#315d36]">Saved.</span>}
       </div>
+
+      <section className="mt-8 rounded-2xl border border-[#e0b4b4] bg-[#fffafa] p-[18px]">
+        <div className="text-[10px] font-extrabold uppercase tracking-[.08em] text-[#9b3a3a]">Danger Zone</div>
+        <div className="mt-1 text-xl font-extrabold">Start Over</div>
+        <p className="mt-2 max-w-[760px] text-sm leading-6 text-[#6b7280]">
+          Permanently delete all Originator Engine activity history and restore your business plan,
+          goals, weekly standards, monthly standards, and Theme Days to the original defaults.
+          This does not affect your LG Loan Toolbox account or any other tool.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            onClick={startOver}
+            disabled={resetting}
+            className="rounded-[10px] border border-[#b44a4a] bg-white px-5 py-3 text-sm font-bold text-[#9b3a3a] disabled:opacity-50"
+          >
+            {resetting ? 'Resetting…' : 'Reset Originator Engine'}
+          </button>
+          {resetError && <span className="text-sm font-bold text-[#9b3a3a]">{resetError}</span>}
+        </div>
+      </section>
     </main>
   )
 }
