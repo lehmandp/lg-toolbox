@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import Header from '@/components/header'
 import MarketplaceGrid from '@/components/marketplace-grid'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic'
 export default async function MarketplacePage() {
   const supabase = await createClient()
   const viewer = await getViewer()
+  if (!viewer) redirect('/login?next=/marketplace')
 
   const catalog = createAdminClient()
   const { data: tools, error: toolsError } = await catalog
@@ -24,13 +26,11 @@ export default async function MarketplacePage() {
   }
 
   let libraryIds = new Set<string>()
-  if (viewer) {
-    const { data: owned } = await supabase
-      .from('user_tools')
-      .select('tool_id')
-      .eq('user_id', viewer.user.id)
-    libraryIds = new Set((owned ?? []).map((r) => r.tool_id))
-  }
+  const { data: owned } = await supabase
+    .from('user_tools')
+    .select('tool_id')
+    .eq('user_id', viewer.user.id)
+  libraryIds = new Set((owned ?? []).map((r) => r.tool_id))
 
   const items: ToolWithState[] = ((tools ?? []) as Tool[]).map((tool) => ({
     ...tool,
@@ -40,7 +40,7 @@ export default async function MarketplacePage() {
 
   return (
     <div className="min-h-screen">
-      <Header isAdmin={viewer?.isAdmin ?? false} />
+      <Header isAdmin={viewer.isAdmin} />
       <main className="mx-auto max-w-[1200px] px-8 pb-24">
         <section className="grid gap-12 py-14 md:grid-cols-[1fr_420px] md:items-end">
           <div>
@@ -55,10 +55,8 @@ export default async function MarketplacePage() {
           <div className="border-l border-border pl-7">
             <strong className="mb-1 block text-sm">LG Loan Toolbox is free.</strong>
             <p className="mb-3 text-xs text-muted-foreground">
-              Create a free account to save tools. Paid products manage their own pricing,
-              checkout, and subscriptions on their separate sites.
+              Your account is free. Paid products, when offered, manage their own pricing and subscriptions separately.
             </p>
-            {!viewer && <Link href="/signup" className="link-rule">Create free account ↗</Link>}
           </div>
         </section>
 
@@ -72,7 +70,7 @@ export default async function MarketplacePage() {
           <span className="text-xs text-muted-foreground">{items.length} tools available</span>
         </div>
 
-        <MarketplaceGrid tools={items} signedIn={Boolean(viewer)} />
+        <MarketplaceGrid tools={items} signedIn />
       </main>
     </div>
   )
