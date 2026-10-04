@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { getUser, isPro } from '@/lib/auth'
-import { isProTool } from '@/lib/types'
+import { getUser } from '@/lib/auth'
 
 /** GET /api/library — the caller's tools. */
 export async function GET() {
@@ -31,7 +30,7 @@ export async function GET() {
   return NextResponse.json({ tools: ids.map((id) => byId.get(id)).filter(Boolean) })
 }
 
-/** POST /api/library — add a tool. Body: { toolId } */
+/** POST /api/library — add any published tool, free or paid. Body: { toolId } */
 export async function POST(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Not signed in.' }, { status: 401 })
@@ -42,22 +41,13 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: tool, error: toolError } = await createAdminClient()
     .from('tools')
-    .select('id, name, monthly_price, published')
+    .select('id, published')
     .eq('id', toolId)
     .maybeSingle()
 
   if (toolError) return NextResponse.json({ error: toolError.message }, { status: 500 })
   if (!tool || !tool.published) {
     return NextResponse.json({ error: 'That tool is not available.' }, { status: 404 })
-  }
-
-  // Enforce the paywall on the server. The UI hides locked tools, but the
-  // endpoint must not rely on that.
-  if (isProTool(tool) && !(await isPro(user.id))) {
-    return NextResponse.json(
-      { error: 'This tool requires an active Pro subscription.' },
-      { status: 402 }
-    )
   }
 
   const { error } = await supabase

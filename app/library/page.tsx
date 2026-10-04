@@ -4,7 +4,7 @@ import Header from '@/components/header'
 import ToolCard from '@/components/tool-card'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getViewer } from '@/lib/auth'
-import { isProTool, type Tool, type ToolWithState } from '@/lib/types'
+import type { Tool, ToolWithState } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +35,7 @@ export default async function LibraryPage() {
     .map((tool) => ({
       ...tool,
       inLibrary: true,
-      locked: isProTool(tool) && !viewer.isPro,
+      locked: false,
     }))
 
   return (
@@ -47,8 +47,8 @@ export default async function LibraryPage() {
             <div className="eyebrow mb-3">MY TOOLBOX</div>
             <h1>Your tools.<br />Ready when you are.</h1>
             <p className="mt-4 max-w-2xl text-[15px] text-muted-foreground">
-              The tools you use live here. Native LG Toolbox modules open inside the hub,
-              while standalone products can launch into their own application.
+              Save any Marketplace item here. Native tools open inside LG Toolbox,
+              while external free or paid products launch on their own sites.
             </p>
           </div>
           <Link href="/marketplace" className="btn-primary">+ Add Tools</Link>
@@ -87,7 +87,7 @@ export default async function LibraryPage() {
                 <span className="mb-4 flex h-11 w-11 items-center justify-center border border-primary text-2xl text-primary">+</span>
                 <strong className="mb-2">Add another tool</strong>
                 <span className="max-w-[220px] text-xs text-muted-foreground">
-                  Browse free tools and available products from the LG Toolbox marketplace.
+                  Browse free tools and independent software products.
                 </span>
               </Link>
             </div>

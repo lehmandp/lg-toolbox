@@ -3,7 +3,7 @@ import Header from '@/components/header'
 import MarketplaceGrid from '@/components/marketplace-grid'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getViewer } from '@/lib/auth'
-import { isProTool, type Tool, type ToolWithState } from '@/lib/types'
+import type { Tool, ToolWithState } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +11,6 @@ export default async function MarketplacePage() {
   const supabase = await createClient()
   const viewer = await getViewer()
 
-  // Published catalog is public data. Load it server-side with the service role
-  // so marketplace visibility does not depend on a caller's RLS/admin state.
   const catalog = createAdminClient()
   const { data: tools, error: toolsError } = await catalog
     .from('tools')
@@ -37,7 +35,7 @@ export default async function MarketplacePage() {
   const items: ToolWithState[] = ((tools ?? []) as Tool[]).map((tool) => ({
     ...tool,
     inLibrary: libraryIds.has(tool.id),
-    locked: isProTool(tool) && !viewer?.isPro,
+    locked: false,
   }))
 
   return (
@@ -49,23 +47,18 @@ export default async function MarketplacePage() {
             <div className="eyebrow mb-3">MARKETPLACE</div>
             <h1>Find the tools<br />you actually use.</h1>
             <p className="mt-4 max-w-2xl text-[15px] text-muted-foreground">
-              Add free calculators and workflow tools to your toolbox. Premium software can
-              stay independent while still being available from the same LG Toolbox account.
+              Build your own toolbox with free native tools, free tools hosted elsewhere,
+              and independent paid software products.
             </p>
           </div>
 
           <div className="border-l border-border pl-7">
-            <strong className="mb-1 block text-sm">
-              Your account: {viewer?.isPro ? 'Pro' : 'Free'}
-            </strong>
+            <strong className="mb-1 block text-sm">LG Loan Toolbox is free.</strong>
             <p className="mb-3 text-xs text-muted-foreground">
-              Free tools can be added immediately. Premium tools unlock with your account access.
+              Create a free account to save tools. Paid products manage their own pricing,
+              checkout, and subscriptions on their separate sites.
             </p>
-            {!viewer ? (
-              <Link href="/signup" className="link-rule">Create free account ↗</Link>
-            ) : !viewer.isPro ? (
-              <Link href="/upgrade" className="link-rule">View premium access ↗</Link>
-            ) : null}
+            {!viewer && <Link href="/signup" className="link-rule">Create free account ↗</Link>}
           </div>
         </section>
 

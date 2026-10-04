@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ToolModal from '@/components/tool-modal'
-import { isProTool, type Tool } from '@/lib/types'
+import { isPaidTool, type Tool } from '@/lib/types'
 
 export default function AdminCatalog({ tools }: { tools: Tool[] }) {
   const router = useRouter()
@@ -36,8 +36,8 @@ export default function AdminCatalog({ tools }: { tools: Tool[] }) {
         <div className="eyebrow mb-3">ADMIN</div>
         <h1>Manage the toolbox.</h1>
         <p className="mt-4 max-w-2xl text-[15px] text-muted-foreground">
-          Build the software separately, then register it here. Published tools appear in the Marketplace automatically
-          and can be added by users to My Toolbox.
+          Publish free tools and profile independent paid products from one catalog. Access (Free/Paid)
+          and type (Native/External) are managed separately.
         </p>
       </section>
 
@@ -48,12 +48,12 @@ export default function AdminCatalog({ tools }: { tools: Tool[] }) {
           <div className="border-b border-border px-5 py-5">
             <div className="eyebrow mb-2">ADD TOOL</div>
             <h2>New marketplace item</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Create the catalog record for a tool you have already built.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Create the catalog record for a tool or software product.</p>
           </div>
 
           <div className="p-5">
             <p className="mb-6 text-sm text-muted-foreground">
-              Tool name, description, category, access, destination, and publish status are all managed here.
+              Free and Paid are independent from Native and External, so free tools hosted elsewhere work just as well as native tools.
             </p>
             <button onClick={()=>setCreating(true)} className="btn-primary w-full">+ Add a Tool</button>
           </div>
@@ -88,9 +88,9 @@ export default function AdminCatalog({ tools }: { tools: Tool[] }) {
 
                   <span className={
                     'justify-self-start border px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[.08em] ' +
-                    (isProTool(tool) ? 'border-primary bg-primary text-white' : 'border-primary text-primary')
+                    (isPaidTool(tool) ? 'border-primary bg-primary text-white' : 'border-primary text-primary')
                   }>
-                    {isProTool(tool) ? 'Premium' : 'Free'}
+                    {isPaidTool(tool) ? 'Paid' : 'Free'}
                   </span>
 
                   <span className={
@@ -106,11 +106,7 @@ export default function AdminCatalog({ tools }: { tools: Tool[] }) {
 
                   <div className="flex flex-col items-start gap-2">
                     <button onClick={()=>setEditing(tool)} className="border-b border-primary pb-px text-[11px] font-semibold text-primary">Edit</button>
-                    <button
-                      onClick={()=>remove(tool)}
-                      disabled={busyId===tool.id}
-                      className="text-[10px] text-muted-foreground hover:text-primary"
-                    >
+                    <button onClick={()=>remove(tool)} disabled={busyId===tool.id} className="text-[10px] text-muted-foreground hover:text-primary">
                       {busyId===tool.id ? 'Deleting…' : 'Delete'}
                     </button>
                   </div>
@@ -120,9 +116,9 @@ export default function AdminCatalog({ tools }: { tools: Tool[] }) {
           </div>
 
           <div className="mt-5 border border-border bg-white px-5 py-4">
-            <strong className="mb-1 block text-xs">Simple workflow</strong>
+            <strong className="mb-1 block text-xs">Catalog model</strong>
             <p className="text-xs text-muted-foreground">
-              Build and approve the actual tool first. Then add or edit one record here. LG Toolbox handles the Marketplace listing automatically.
+              LG Loan Toolbox is free. Paid products can still be saved to My Toolbox, but pricing and subscriptions live on the product&apos;s own site.
             </p>
           </div>
         </div>
