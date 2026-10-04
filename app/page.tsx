@@ -6,9 +6,8 @@ export default function Home() {
     <div className="min-h-screen">
       <Header />
 
-      {/* Hero Section */}
-      <div className="max-w-[1200px] mx-auto px-8 py-20">
-        <div className="grid grid-cols-2 gap-12 items-center">
+      <div className="mx-auto max-w-[1200px] px-8 py-20">
+        <div className="grid grid-cols-2 items-center gap-12">
           <div>
             <h1 className="mb-0">
               Your tools.<br />
@@ -16,12 +15,13 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex flex-col items-end gap-6">
-            <p className="text-muted-foreground text-right max-w-md">
-              Browse the marketplace and add the tools you want to use. Free tools available instantly, premium tools with Pro subscription.
+            <p className="max-w-md text-right text-muted-foreground">
+              LG Loan Toolbox is a free hub for loan officers. Use free tools, save your favorites,
+              and discover independent software products from one marketplace.
             </p>
             <Link href="/signup" className="btn-primary">
               <span className="text-xl">+</span>
-              Get Started Free
+              Create Free Account
             </Link>
           </div>
         </div>
@@ -29,30 +29,29 @@ export default function Home() {
 
       <div className="hairline" />
 
-      {/* Features */}
-      <div className="max-w-[1200px] mx-auto px-8 py-20">
+      <div className="mx-auto max-w-[1200px] px-8 py-20">
         <div className="eyebrow mb-6">HOW IT WORKS</div>
         <h2 className="mb-12">Build your perfect toolkit</h2>
         <div className="grid grid-cols-3 gap-8">
           <div className="space-y-3">
-            <div className="text-primary text-sm">01 /</div>
+            <div className="text-sm text-primary">01 /</div>
             <h3 className="text-xl font-medium">Browse marketplace</h3>
-            <p className="text-muted-foreground text-sm">
-              Explore free calculators and premium workflow tools designed for loan originators.
+            <p className="text-sm text-muted-foreground">
+              Explore free native tools, free external resources, and paid software products built for loan originators.
             </p>
           </div>
           <div className="space-y-3">
-            <div className="text-primary text-sm">02 /</div>
-            <h3 className="text-xl font-medium">Add to library</h3>
-            <p className="text-muted-foreground text-sm">
-              One click to add free tools. Premium tools require Pro subscription ($100/month).
+            <div className="text-sm text-primary">02 /</div>
+            <h3 className="text-xl font-medium">Add to My Toolbox</h3>
+            <p className="text-sm text-muted-foreground">
+              Save any tool to your personal toolbox. Your LG Loan Toolbox account is always free.
             </p>
           </div>
           <div className="space-y-3">
-            <div className="text-primary text-sm">03 /</div>
+            <div className="text-sm text-primary">03 /</div>
             <h3 className="text-xl font-medium">Launch & work</h3>
-            <p className="text-muted-foreground text-sm">
-              Access all your tools from one place. Single sign-on across the entire suite.
+            <p className="text-sm text-muted-foreground">
+              Native tools open here. External tools launch on their own sites, where paid products manage their own subscriptions.
             </p>
           </div>
         </div>
@@ -60,13 +59,12 @@ export default function Home() {
 
       <div className="hairline" />
 
-      {/* Footer */}
-      <footer className="max-w-[1200px] mx-auto px-8 py-12">
+      <footer className="mx-auto max-w-[1200px] px-8 py-12">
         <div className="grid grid-cols-3 gap-8 text-sm">
           <div className="eyebrow">LG LOAN TOOLBOX</div>
           <div className="text-center text-muted-foreground">Part of The Lehman Group</div>
           <div className="text-right">
-            <a href="https://lehmangrp.com" target="_blank" rel="noopener noreferrer" className="text-primary font-medium border-b border-primary pb-1">
+            <a href="https://lehmangrp.com" target="_blank" rel="noopener noreferrer" className="border-b border-primary pb-1 font-medium text-primary">
               lehmangrp.com ↗
             </a>
           </div>
