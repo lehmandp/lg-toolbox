@@ -46,7 +46,6 @@ function SignupForm() {
       return
     }
 
-    // With email confirmation on, there is no session yet.
     if (data.session) {
       router.push(next)
       router.refresh()
@@ -59,57 +58,21 @@ function SignupForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label htmlFor="fullName" className="field-label">Full name</label>
-        <input
-          id="fullName"
-          type="text"
-          required
-          autoComplete="name"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          className="field-input"
-          placeholder="Jane Originator"
-        />
+        <input id="fullName" type="text" required autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="field-input" placeholder="Jane Originator" />
       </div>
 
       <div>
         <label htmlFor="email" className="field-label">Email</label>
-        <input
-          id="email"
-          type="email"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="field-input"
-          placeholder="you@company.com"
-        />
+        <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="field-input" placeholder="you@company.com" />
       </div>
 
       <div>
         <label htmlFor="password" className="field-label">Password</label>
-        <input
-          id="password"
-          type="password"
-          required
-          autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="field-input"
-          placeholder="At least 8 characters"
-        />
+        <input id="password" type="password" required autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className="field-input" placeholder="At least 8 characters" />
       </div>
 
-      {error && (
-        <p className="border border-primary bg-white px-4 py-3 text-sm text-primary" role="alert">
-          {error}
-        </p>
-      )}
-
-      {notice && (
-        <p className="border border-border bg-white px-4 py-3 text-sm text-foreground" role="status">
-          {notice}
-        </p>
-      )}
+      {error && <p className="border border-primary bg-white px-4 py-3 text-sm text-primary" role="alert">{error}</p>}
+      {notice && <p className="border border-border bg-white px-4 py-3 text-sm text-foreground" role="status">{notice}</p>}
 
       <button type="submit" disabled={loading} className="btn-primary w-full">
         {loading ? 'Creating account…' : 'Create free account'}
@@ -117,9 +80,7 @@ function SignupForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href="/login" className="text-primary border-b border-primary pb-px">
-          Sign in
-        </Link>
+        <Link href="/login" className="border-b border-primary pb-px text-primary">Sign in</Link>
       </p>
     </form>
   )
@@ -133,12 +94,9 @@ export default function SignupPage() {
         <div className="eyebrow mb-6">GET STARTED</div>
         <h1 className="mb-4">Create your account</h1>
         <p className="mb-10 text-sm text-muted-foreground">
-          Free forever. No credit card required. Upgrade to Pro any time to unlock
-          every premium tool.
+          Free forever. No credit card required. Save the tools you use and build your personal LG Loan Toolbox.
         </p>
-        <Suspense fallback={null}>
-          <SignupForm />
-        </Suspense>
+        <Suspense fallback={null}><SignupForm /></Suspense>
       </div>
     </div>
   )
