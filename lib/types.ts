@@ -39,9 +39,18 @@ export interface ToolWithState extends Tool {
   locked: boolean
 }
 
-export function isProTool(tool: Pick<Tool, 'monthly_price'>): boolean {
+/**
+ * Catalog access label only.
+ * monthly_price is retained for backward compatibility with the existing
+ * schema: 0 = Free, any positive value = Paid. LG Toolbox itself does not
+ * collect or enforce payment for paid catalog items.
+ */
+export function isPaidTool(tool: Pick<Tool, 'monthly_price'>): boolean {
   return Number(tool.monthly_price) > 0
 }
+
+/** @deprecated Use isPaidTool. Kept so dormant legacy subscription code still builds. */
+export const isProTool = isPaidTool
 
 export function toolSlug(name: string): string {
   return name
