@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import ToolCard from '@/components/tool-card'
 import { CountBadge, EmptyState } from '@/components/ui'
-import { isProTool, type ToolWithState } from '@/lib/types'
+import { isPaidTool, type ToolWithState } from '@/lib/types'
 
-type TabKey = 'all' | 'free' | 'pro'
+type TabKey = 'all' | 'free' | 'paid'
 
 export default function MarketplaceGrid({
   tools,
@@ -16,16 +16,16 @@ export default function MarketplaceGrid({
 }) {
   const [tab, setTab] = useState<TabKey>('all')
 
-  const free = tools.filter((t) => !isProTool(t))
-  const pro = tools.filter((t) => isProTool(t))
+  const free = tools.filter((t) => !isPaidTool(t))
+  const paid = tools.filter((t) => isPaidTool(t))
 
   const tabs: { key: TabKey; label: string; count: number }[] = [
     { key: 'all', label: 'All tools', count: tools.length },
     { key: 'free', label: 'Free', count: free.length },
-    { key: 'pro', label: 'Pro', count: pro.length },
+    { key: 'paid', label: 'Paid', count: paid.length },
   ]
 
-  const shown = tab === 'free' ? free : tab === 'pro' ? pro : tools
+  const shown = tab === 'free' ? free : tab === 'paid' ? paid : tools
 
   return (
     <>
@@ -35,7 +35,7 @@ export default function MarketplaceGrid({
           <CountBadge value={tools.length} />
         </div>
         <span className="text-sm text-muted-foreground">
-          One subscription unlocks every Pro tool.
+          Free tools and independent software products, all in one toolbox.
         </span>
       </div>
 
