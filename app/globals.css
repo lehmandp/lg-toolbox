@@ -326,3 +326,202 @@
 
   .modal-close:hover { color: var(--color-foreground); }
 }
+
+
+/* --- Public homepage motion + polish ------------------------- */
+
+.home-hero-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.home-hero-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(to right, rgba(30, 30, 30, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 30, 30, 0.055) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.45), transparent 82%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.45), transparent 82%);
+}
+
+.home-hero-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  width: 760px;
+  height: 420px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(162,96,40,.13) 0%, rgba(162,96,40,.06) 32%, rgba(162,96,40,0) 72%);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.home-hero {
+  position: relative;
+  z-index: 1;
+}
+
+.home-hero-eyebrow,
+.home-hero-title,
+.home-hero-copy,
+.home-hero-cta,
+.home-hero-micro {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.home-loaded .home-hero-eyebrow { animation: home-rise .6s .08s forwards; }
+.home-loaded .home-hero-title { animation: home-rise .7s .18s forwards; }
+.home-loaded .home-hero-copy { animation: home-rise .7s .3s forwards; }
+.home-loaded .home-hero-cta { animation: home-rise .7s .4s forwards; }
+.home-loaded .home-hero-micro { animation: home-rise .7s .5s forwards; }
+
+.home-hero-accent {
+  width: 68px;
+  height: 3px;
+  margin: 18px auto 0;
+  background: var(--color-primary);
+  transform-origin: center;
+  animation: home-grow 1s .5s both;
+}
+
+.home-primary-cta {
+  transition: opacity .2s, transform .2s;
+}
+
+.home-primary-cta:hover {
+  transform: translateY(-1px);
+}
+
+.home-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+
+.home-reveal.home-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-category-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+
+.home-category-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 0;
+  height: 3px;
+  background: var(--color-primary);
+  transition: right .3s ease;
+}
+
+.home-category-card:hover {
+  transform: translateY(-5px);
+  border-color: #c8b29f;
+  box-shadow: 0 12px 30px rgba(30,30,30,.06);
+}
+
+.home-category-card:hover::after {
+  right: 0;
+}
+
+.home-category-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-primary);
+  font-size: 18px;
+}
+
+.home-final-cta {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #203d5a, #172f47);
+}
+
+.home-final-glow {
+  position: absolute;
+  right: -120px;
+  top: -160px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.09), transparent 68%);
+  pointer-events: none;
+}
+
+.home-light-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 49px;
+  padding: 13px 24px;
+  border: 1px solid #fff;
+  background: #fff;
+  color: #203d5a;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+.home-light-cta:hover {
+  transform: translateY(-2px);
+  opacity: .94;
+}
+
+@keyframes home-rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes home-grow {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-eyebrow,
+  .home-hero-title,
+  .home-hero-copy,
+  .home-hero-cta,
+  .home-hero-micro,
+  .home-reveal {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .home-hero-accent {
+    animation: none;
+  }
+
+  .home-category-card:hover,
+  .home-primary-cta:hover,
+  .home-light-cta:hover {
+    transform: none;
+  }
+}
