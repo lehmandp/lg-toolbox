@@ -44,11 +44,7 @@ export default function ToolCard({ tool, variant, signedIn }: Props) {
     try {
       if (!tool.tool_url) throw new Error('This tool has no launch address yet.')
 
-      if (native && tool.tool_url.startsWith('/')) {
-        router.push(tool.tool_url)
-      } else {
-        window.open(tool.tool_url, '_blank', 'noopener,noreferrer')
-      }
+      window.open(tool.tool_url, '_blank', 'noopener,noreferrer')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not launch this tool.')
     } finally {
@@ -109,8 +105,14 @@ export default function ToolCard({ tool, variant, signedIn }: Props) {
         ) : !signedIn ? (
           <Link href="/signup" className="border-b border-primary pb-px text-xs font-semibold text-primary">Sign up →</Link>
         ) : variant === 'library' ? (
-          <button onClick={launch} disabled={busy} className="border-b border-primary pb-px text-xs font-semibold text-primary">
-            {busy ? 'Opening…' : native ? 'Open Tool →' : 'Launch Tool →'}
+          <button
+            onClick={launch}
+            disabled={busy}
+            className="group cursor-pointer border-b border-primary pb-px text-xs font-semibold text-primary transition-all duration-150 hover:translate-x-0.5 hover:border-b-2 hover:font-extrabold hover:text-[#7e471e] disabled:cursor-wait disabled:opacity-60"
+          >
+            <span className="inline-block transition-transform duration-150 group-hover:translate-x-0.5">
+              {busy ? 'Opening…' : native ? 'Open Tool ↗' : 'Launch Tool ↗'}
+            </span>
           </button>
         ) : tool.inLibrary ? (
           <span className="border border-border px-3 py-2 text-[11px] font-semibold text-muted-foreground">Added</span>
