@@ -22,6 +22,11 @@ const monthly = [
 ] as const
 
 const keys = ['face','bread','calls','events','content','cards','gifts','newRealtors','newOffices','newVips','leads','deals'] as const
+const summaryMetrics = [
+  ['face','Face-to-Face'],['bread','Break Bread'],['calls','Great Calls'],['events','Events'],
+  ['content','Content'],['cards','Thank-You Cards'],['gifts','Gifts'],['newRealtors','New Realtors'],
+  ['newOffices','New Offices / Teams'],['newVips','New VIPs'],['leads','Leads'],['deals','Deals'],
+] as const
 
 function startOfWeek(d: Date) {
   const x = new Date(d)
@@ -43,11 +48,18 @@ function inRange(row: ActivityEntry, a: Date, b: Date) {
   const d = new Date(row.date+'T12:00:00')
   return d>=a && d<=b
 }
+function dateInRange(date:string,a:Date,b:Date) {
+  const d = new Date(date+'T12:00:00')
+  return d>=a && d<=b
+}
 function aggregate(rows: ActivityEntry[]) {
   const out: Record<string,number> = {}
   keys.forEach(k=>out[k]=0)
   rows.forEach(r=>keys.forEach(k=>out[k]+=Number(r[k]||0)))
   return out
+}
+function prettyDate(date:string) {
+  return new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})
 }
 function businessPlan(s: EngineSettings) {
   const revenue = s.compType === 'flat' ? Number(s.compFlat) : Number(s.avgLoan)*(Number(s.compBps)/10000)
@@ -99,8 +111,10 @@ export default function OriginatorEngineDashboard() {
   },[])
 
   const now = useMemo(()=>new Date(),[])
+  const weekStart = startOfWeek(now)
+  const weekEnd = endOfWeek(now)
   const plan = businessPlan(settings)
-  const weekRows = activity.filter(r=>inRange(r,startOfWeek(now),endOfWeek(now)))
+  const weekRows = activity.filter(r=>inRange(r,weekStart,weekEnd))
   const monthRows = activity.filter(r=>inRange(r,startOfMonth(now),endOfMonth(now)))
   const todayRows = activity.filter(r=>r.date===now.toISOString().slice(0,10))
   const week = aggregate(weekRows)
@@ -109,6 +123,24 @@ export default function OriginatorEngineDashboard() {
   const activeTargets = weekly.map(([label,key,goal])=>({label,key,goal:Number(settings[goal])})).filter(x=>x.goal>0)
   const completeCount = activeTargets.filter(x=>week[x.key]>=x.goal).length
   const theme = themeForToday(settings,now)
+
+  const weekDaily = useMemo(()=>{
+    const map = new Map<string,ActivityEntry[]>()
+    weekRows.forEach(row=>{
+      const current=map.get(row.date)??[]
+      current.push(row)
+      map.set(row.date,current)
+    })
+    Object.keys(settings.dailyNotes ?? {}).forEach(date=>{
+      if (dateInRange(date,weekStart,weekEnd) && settings.dailyNotes[date]?.trim() && !map.has(date)) map.set(date,[])
+    })
+    return [...map.entries()].sort(([a],[b])=>b.localeCompare(a)).map(([date,entries])=>({
+      date,
+      entries:[...entries].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),
+      totals:aggregate(entries),
+      note:settings.dailyNotes?.[date]??'',
+    }))
+  },[weekRows,settings.dailyNotes,weekStart,weekEnd])
 
   return (
     <main className="mx-auto max-w-[1220px] p-[22px] text-[#1f2937]">
@@ -206,15 +238,53 @@ export default function OriginatorEngineDashboard() {
       </section>
 
       <section className="mt-4 rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
-        <div className="mb-4"><div className="text-[10px] font-extrabold uppercase tracking-[.08em] text-[#6b7280]">Activity Feed</div><div className="text-xl font-extrabold">What Happened This Week</div></div>
-        {weekRows.length===0 ? <p className="text-sm text-[#6b7280]">No activity logged this week.</p> :
-          <div className="space-y-2">{[...weekRows].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).map(row=>
-            <div key={row.id} className="rounded-xl border border-[#d8dee8] p-3">
-              <div className="text-[13px] font-extrabold">{row.title || 'Activity Entry'}</div>
-              <div className="text-[10px] text-[#6b7280]">{row.date} · {row.category}</div>
-              {row.note && <div className="mt-1 text-xs text-[#6b7280]">{row.note}</div>}
-            </div>
-          )}</div>}
+        <div className="mb-4">
+          <div className="text-[10px] font-extrabold uppercase tracking-[.08em] text-[#6b7280]">Activity Feed</div>
+          <div className="text-xl font-extrabold">What Happened This Week</div>
+          <p className="mt-1 text-xs text-[#6b7280]">Activity is summarized by day. Expand any date to see the underlying entries.</p>
+        </div>
+
+        {weekDaily.length===0 ? <p className="text-sm text-[#6b7280]">No activity logged this week.</p> :
+          <div className="space-y-3">
+            {weekDaily.map(group=>(
+              <details key={group.date} className="rounded-xl border border-[#d8dee8]">
+                <summary className="cursor-pointer list-none p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[13px] font-extrabold">{prettyDate(group.date)}</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {summaryMetrics.filter(([key])=>group.totals[key]>0).map(([key,label])=>(
+                          <span key={key} className="rounded-[8px] bg-[#eef4fa] px-2.5 py-1 text-[11px] font-bold text-[#1f4b7a]">
+                            {group.totals[key]} {label}
+                          </span>
+                        ))}
+                        {group.entries.length===0 && <span className="text-xs text-[#6b7280]">Notes only</span>}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#6b7280]">{group.entries.length} {group.entries.length===1?'entry':'entries'} · View details ↓</span>
+                  </div>
+                  {group.note && (
+                    <div className="mt-3 rounded-[10px] bg-[#f7f9fb] p-3 text-xs leading-5 text-[#4b5563]">
+                      <span className="font-extrabold">Daily Notes: </span>{group.note}
+                    </div>
+                  )}
+                </summary>
+
+                {group.entries.length>0 && (
+                  <div className="space-y-2 border-t border-[#d8dee8] px-4 py-3">
+                    {group.entries.map(row=>(
+                      <div key={row.id} className="rounded-[10px] border border-[#e3e7ed] p-3">
+                        <div className="text-[13px] font-extrabold">{row.title || 'Activity Entry'}</div>
+                        <div className="text-[10px] text-[#6b7280]">{row.category}</div>
+                        {row.note && <div className="mt-1 text-xs text-[#6b7280]">{row.note}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </details>
+            ))}
+          </div>
+        }
       </section>
     </main>
   )

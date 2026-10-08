@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS = {
   friTheme: 'ON-TIME DAY',
   friAm: 'Business Planning\nProjects\nTracker Finalized',
   friPm: 'Content Filming\nGo Home',
+  dailyNotes: {} as Record<string,string>,
 }
 
 export type EngineSettings = typeof DEFAULT_SETTINGS
