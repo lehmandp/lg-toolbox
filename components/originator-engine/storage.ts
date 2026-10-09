@@ -1,6 +1,16 @@
 export const SETTINGS_KEY = 'lg_originator_engine_settings_v1'
 export const ACTIVITY_KEY = 'lg_originator_engine_activity_v1'
 
+export type WeeklyCloseout = {
+  weekStart: string
+  weekEnd: string
+  finalizedAt: string
+  transactions: number
+  volume: number
+  income: number
+  notes: string
+}
+
 export const DEFAULT_SETTINGS = {
   annualIncome: 450000,
   avgLoan: 650000,
@@ -35,6 +45,7 @@ export const DEFAULT_SETTINGS = {
   friAm: 'Business Planning\nProjects\nTracker Finalized',
   friPm: 'Content Filming\nGo Home',
   dailyNotes: {} as Record<string,string>,
+  weeklyCloseouts: {} as Record<string,WeeklyCloseout>,
 }
 
 export type EngineSettings = typeof DEFAULT_SETTINGS
@@ -63,11 +74,11 @@ export type ActivityEntry = {
 
 export const emptyActivity = (): ActivityEntry => ({
   id: '',
-  type: 'individual',
+  type: 'bulk',
   date: new Date().toISOString().slice(0, 10),
   createdAt: '',
-  title: '',
-  category: 'Realtor',
+  title: 'Activity',
+  category: 'Other',
   note: '',
   face: 0,
   bread: 0,
