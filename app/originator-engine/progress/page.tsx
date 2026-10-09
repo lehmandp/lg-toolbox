@@ -1,18 +1,18 @@
 import { redirect } from 'next/navigation'
 import Header from '@/components/header'
-import OriginatorEngineActivity from '@/components/originator-engine/activity'
+import OriginatorEngineProgress from '@/components/originator-engine/progress'
 import { getViewer } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OriginatorEnginePage() {
+export default async function OriginatorEngineProgressPage() {
   const viewer = await getViewer()
-  if (!viewer) redirect('/login?next=/originator-engine')
+  if (!viewer) redirect('/login?next=/originator-engine/progress')
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
       <Header isAdmin={viewer.isAdmin} />
-      <OriginatorEngineActivity />
+      <OriginatorEngineProgress />
     </div>
   )
 }
