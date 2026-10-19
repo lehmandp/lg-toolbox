@@ -207,6 +207,106 @@ export default function RealtorPartnerEngine() {
     window.alert(imported.length+' prospects imported as Not Started.')
   }
 
+
+  function downloadSecondarySample(){
+    const sample=[
+      ['name','company','phone','email','classification','families_sides','last_touch','notes','call_notes'],
+      ['Jane Smith','Example Realty','760-555-0101','jane@example.com','Bus','4','2026-10-19','Goal: grow VA business. Challenge: consistent lead follow-up.','Sent lead; discuss at next call.'],
+      ['John Doe','Coastal Homes','858-555-0102','john@example.com','BU','2','','Good second-opinion relationship.',''],
+    ]
+    const blob=new Blob([sample.map(row=>row.map(csvCell).join(',')).join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a')
+    a.href=url
+    a.download='realtor-secondary-import-sample.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importSecondary(file:File){
+    const text=await file.text()
+    const rows=parseCsv(text)
+    if(rows.length<2)return
+    const headers=rows[0].map(normalizeHeader)
+    const pos=(...names:string[])=>headers.findIndex(h=>names.includes(h))
+    const nameI=pos('name','agent','agentname','realtor','realtorname')
+    if(nameI<0){window.alert('Import requires a Name column. Download the sample CSV for the expected format.');return}
+    const companyI=pos('company','brokerage')
+    const phoneI=pos('phone','phonenumber','mobile','cell')
+    const emailI=pos('email','emailaddress')
+    const groupI=pos('classification','group','relationship')
+    const countI=pos('familiessides','families','sides','production')
+    const touchI=pos('lasttouch','lastcontact')
+    const notesI=pos('notes','relationshipnotes')
+    const callNotesI=pos('callnotes','weeklycallnotes')
+    const imported:Secondary[]=rows.slice(1).map(cols=>{
+      const read=(i:number)=>i>=0?(cols[i]||'').trim():''
+      const rawGroup=read(groupI)
+      const group:Secondary['group']=rawGroup.toLowerCase()==='bus'?'Bus':rawGroup.toLowerCase()==='prog'?'Prog':'BU'
+      const count=read(countI)
+      return {
+        id:newId(),group,name:read(nameI),company:read(companyI),phone:read(phoneI),email:read(emailI),
+        count:count!==''&&Number.isFinite(Number(count))?Number(count):null,
+        notes:read(notesI),callNotes:read(callNotesI),lastTouch:read(touchI),nextAction:'',
+      }
+    }).filter(row=>row.name)
+    if(!imported.length){window.alert('No secondary rows with names were found.');return}
+    setData(d=>({...d,secondary:[...d.secondary,...imported]}))
+    setView('secondary')
+    window.alert(imported.length+' secondary relationships imported.')
+  }
+
+  function downloadPrimarySample(){
+    const sample=[
+      ['name','company','phone','email','tier','families_helped','birthday','partnership_tie','last_touch','notes','call_notes'],
+      ['Jane Smith','Example Realty','760-555-0101','jane@example.com','A','12','1982-04-14','Business / VA','2026-10-19','Goal: grow team and listing business.','Sent lead; follow up on listing.'],
+      ['John Doe','Coastal Homes','858-555-0102','john@example.com','B','6','','Backup / Jumbo','','Strong referral partner.',''],
+    ]
+    const blob=new Blob([sample.map(row=>row.map(csvCell).join(',')).join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a')
+    a.href=url
+    a.download='realtor-primary-import-sample.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importPrimary(file:File){
+    const text=await file.text()
+    const rows=parseCsv(text)
+    if(rows.length<2)return
+    const headers=rows[0].map(normalizeHeader)
+    const pos=(...names:string[])=>headers.findIndex(h=>names.includes(h))
+    const nameI=pos('name','agent','agentname','realtor','realtorname')
+    if(nameI<0){window.alert('Import requires a Name column. Download the sample CSV for the expected format.');return}
+    const companyI=pos('company','brokerage')
+    const phoneI=pos('phone','phonenumber','mobile','cell')
+    const emailI=pos('email','emailaddress')
+    const tierI=pos('tier','relationship')
+    const familiesI=pos('familieshelped','families','sides','production')
+    const birthdayI=pos('birthday','birthdate')
+    const tieI=pos('partnershiptie','tie','relationshiptype')
+    const touchI=pos('lasttouch','lastcontact')
+    const notesI=pos('notes','relationshipnotes')
+    const callNotesI=pos('callnotes','weeklycallnotes')
+    const imported:Primary[]=rows.slice(1).map(cols=>{
+      const read=(i:number)=>i>=0?(cols[i]||'').trim():''
+      const rawTier=read(tierI).toUpperCase()
+      const tier:Primary['tier']=rawTier==='A'||rawTier==='B'?rawTier:'C'
+      const families=read(familiesI)
+      return {
+        id:newId(),tier,name:read(nameI),company:read(companyI),phone:read(phoneI),email:read(emailI),
+        birthday:read(birthdayI),tie:read(tieI),
+        families:families!==''&&Number.isFinite(Number(families))?Number(families):null,
+        notes:read(notesI),callNotes:read(callNotesI),lastTouch:read(touchI),nextAction:'',
+      }
+    }).filter(row=>row.name)
+    if(!imported.length){window.alert('No primary rows with names were found.');return}
+    setData(d=>({...d,primary:[...d.primary,...imported]}))
+    setView('primary')
+    window.alert(imported.length+' primary relationships imported.')
+  }
+
   function exportCallCsv(kind:'secondary'|'primary'){
     const rows=kind==='secondary'?shownSecondary:shownPrimary
     const headers=['Name','Company','Phone','Email','Relationship','Last Touch','Notes','Call Notes']
@@ -260,7 +360,7 @@ export default function RealtorPartnerEngine() {
   }
 
   return (
-    <main className="mx-auto max-w-[1220px] p-[22px] text-[#1f2937]">
+    <main className="w-full p-[22px] text-[#1f2937]">
       <div className="mb-[18px] flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[#d8dee8] bg-white px-3 py-2.5">
         <div className="text-sm font-black">Realtor Partner Engine</div>
         <nav className="flex flex-wrap gap-1.5">
@@ -332,7 +432,7 @@ export default function RealtorPartnerEngine() {
       </>}
 
       {view==='secondary' && <>
-        <PageHead eyebrow="Roster Position" title="Secondary Relationships" copy="Working Realtor relationships where you have earned a place on the roster. Keep the sheet current, stay useful, and graduate relationships to Primary when referral activity grows." action={<button onClick={()=>setModal('secondary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Secondary</button>} />
+        <PageHead eyebrow="Roster Position" title="Secondary Relationships" copy="Working Realtor relationships where you have earned a place on the roster. Keep the sheet current, stay useful, and graduate relationships to Primary when referral activity grows." action={<div className="flex flex-wrap gap-2"><label className="cursor-pointer rounded-[10px] border border-[#1f4b7a] bg-white px-4 py-3 text-sm font-bold text-[#1f4b7a]">Import Secondary<input type="file" accept=".csv,text/csv" className="hidden" onChange={e=>{const file=e.target.files?.[0];if(file)void importSecondary(file);e.currentTarget.value='' }}/></label><button onClick={downloadSecondarySample} className="rounded-[10px] border border-[#d8dee8] bg-white px-4 py-3 text-sm font-bold">Sample CSV</button><button onClick={()=>setModal('secondary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Secondary</button></div>} />
         <Cadence label="Relationship cadence" items={['Call semi-monthly','Meet quarterly','Book / gift annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="BUS — Business" copy="Coaching, lead strategy, business planning, growth conversations."/><ClassCard title="BU — Backup" copy="Save deals, second opinions, difficult scenarios, fast-close resource."/><ClassCard title="PROG — Program" copy="Known specialist for VA or another product niche."/></div>
         <Toolbar><input value={secondarySearch} onChange={e=>setSecondarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search secondary partners..."/><select value={secondaryGroup} onChange={e=>setSecondaryGroup(e.target.value)} className={input}><option value="all">All groups</option><option>Bus</option><option>BU</option><option>Prog</option></select><div className="ml-auto flex flex-wrap gap-2"><button onClick={()=>printCallList('secondary')} className={mini}>Print / PDF Call List</button><button onClick={()=>exportCallCsv('secondary')} className={mini}>Export Dialer CSV</button></div></Toolbar>
@@ -349,7 +449,7 @@ export default function RealtorPartnerEngine() {
       </>}
 
       {view==='primary' && <>
-        <PageHead eyebrow="Core Referral Partners" title="Primary Relationships" copy="Core Realtor accounts. Keep relationship details, referral activity, notes, and last-touch dates current; tier A/B/C by actual production." action={<button onClick={()=>setModal('primary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Primary</button>} />
+        <PageHead eyebrow="Core Referral Partners" title="Primary Relationships" copy="Core Realtor accounts. Keep relationship details, referral activity, notes, and last-touch dates current; tier A/B/C by actual production." action={<div className="flex flex-wrap gap-2"><label className="cursor-pointer rounded-[10px] border border-[#1f4b7a] bg-white px-4 py-3 text-sm font-bold text-[#1f4b7a]">Import Primary<input type="file" accept=".csv,text/csv" className="hidden" onChange={e=>{const file=e.target.files?.[0];if(file)void importPrimary(file);e.currentTarget.value='' }}/></label><button onClick={downloadPrimarySample} className="rounded-[10px] border border-[#d8dee8] bg-white px-4 py-3 text-sm font-bold">Sample CSV</button><button onClick={()=>setModal('primary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Primary</button></div>} />
         <Cadence label="Relationship cadence" items={['Call weekly','Meet monthly','Book / gift quarterly','Birthday annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="A — 1 transaction / month" copy="Highest-value partner tier."/><ClassCard title="B — 1 transaction / quarter" copy="Consistent producing relationship."/><ClassCard title="C — 1 transaction / year" copy="Maintain and develop the relationship."/></div>
         <Toolbar><input value={primarySearch} onChange={e=>setPrimarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search primary partners..."/><select value={primaryTier} onChange={e=>setPrimaryTier(e.target.value)} className={input}><option value="all">All tiers</option><option>A</option><option>B</option><option>C</option></select><div className="ml-auto flex flex-wrap gap-2"><button onClick={()=>printCallList('primary')} className={mini}>Print / PDF Call List</button><button onClick={()=>exportCallCsv('primary')} className={mini}>Export Dialer CSV</button></div></Toolbar>
@@ -535,8 +635,8 @@ function Flow({n,title,copy}:{n:string;title:string;copy:string}){return <div cl
 function Toolbar({children}:{children:ReactNode}){return <div className="flex flex-wrap gap-2 rounded-t-[14px] border border-b-0 border-[#d8dee8] bg-white p-3">{children}</div>}
 function Table({headers,rows}:{headers:string[];rows:ReactNode[][]}){return <div className="overflow-auto rounded-b-[14px] border border-[#d8dee8] bg-white"><table className="w-full min-w-[960px] border-collapse"><thead><tr>{headers.map((h,i)=><th key={h+i} className="border-b border-[#d8dee8] bg-[#f7f9fb] px-2.5 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.07em] text-[#6b7280]">{h}</th>)}</tr></thead><tbody>{rows.length===0?<tr><td colSpan={headers.length} className="p-4 text-sm text-[#6b7280]">No matching records.</td></tr>:rows.map((row,i)=><tr key={i} className="hover:bg-[#fbfcfd]">{row.map((cell,j)=><td key={j} className="border-b border-[#e9edf2] px-2.5 py-3 align-middle text-sm">{cell}</td>)}</tr>)}</tbody></table></div>}
 function InlineStage({value,onChange}:{value:number;onChange:(value:number)=>void}){return <select value={value} onChange={e=>onChange(Number(e.target.value))} className="rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs font-extrabold text-[#1f4b7a] outline-none focus:border-[#1f4b7a]"><option value={0}>Not Started</option><option value={1}>Initial Contact</option><option value={2}>Meeting</option></select>}
-function InlineCallNotes({value,onChange}:{value:string;onChange:(value:string)=>void}){return <textarea value={value||''} onChange={e=>onChange(e.target.value)} rows={2} placeholder="Call notes..." className="min-w-[190px] resize-y rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs leading-5 outline-none focus:border-[#1f4b7a]"/>}
-function InlineLastTouch({value,onChange}:{value:string;onChange:(value:string)=>void}){return <div className="flex min-w-[180px] items-center gap-1.5"><input type="date" value={value||''} onChange={e=>onChange(e.target.value)} className="min-w-0 rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#1f4b7a]"/><button type="button" onClick={()=>onChange(todayKey())} className="rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-[10px] font-extrabold">Today</button></div>}
+function InlineCallNotes({value,onChange}:{value:string;onChange:(value:string)=>void}){return <textarea value={value||''} onChange={e=>onChange(e.target.value)} rows={2} placeholder="Call notes..." className="min-w-[150px] resize-y rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs leading-5 outline-none focus:border-[#1f4b7a]"/>}
+function InlineLastTouch({value,onChange}:{value:string;onChange:(value:string)=>void}){return <div className="flex min-w-[160px] items-center gap-1.5"><input type="date" value={value||''} onChange={e=>onChange(e.target.value)} className="min-w-0 rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#1f4b7a]"/><button type="button" onClick={()=>onChange(todayKey())} className="rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-[10px] font-extrabold">Today</button></div>}
 function ProgressBadge({value}:{value:number}){return <span className="rounded-full border border-[#bfd0df] bg-[#eef4fa] px-2 py-1 text-[10px] font-extrabold text-[#1f4b7a]">{stageLabel(value)}</span>}
 function RecordName({name,sub,onClick}:{name:string;sub:string;onClick:()=>void}){return <button onClick={onClick} className="text-left"><div className="font-extrabold text-[#1f4b7a] hover:underline">{name}</div><div className="text-[11px] text-[#6b7280]">{sub}</div></button>}
 function NotePreview({value}:{value:string}){const text=(value||'').trim();return <div className="max-w-[250px] truncate text-xs text-[#4b5563]" title={text}>{text||'—'}</div>}
