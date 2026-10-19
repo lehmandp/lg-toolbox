@@ -8,6 +8,7 @@ type Prospect = { id:string; name:string; company:string; phone:string; email:st
 type Secondary = { id:string; group:'Bus'|'BU'|'Prog'; name:string; company:string; phone:string; email:string; count:number|null; notes:string; lastTouch:string; nextAction:string }
 type Primary = { id:string; tier:'A'|'B'|'C'; name:string; company:string; phone:string; email:string; birthday:string; tie:string; families:number|null; notes:string; lastTouch:string; nextAction:string }
 type Store = { prospects:Prospect[]; secondary:Secondary[]; primary:Primary[] }
+type EditRecord = { type:ModalType; id:string }
 
 const KEY = 'lg_realtor_partner_engine_v1'
 const EMPTY: Store = { prospects:[], secondary:[], primary:[] }
@@ -24,6 +25,7 @@ export default function RealtorPartnerEngine() {
   const [data,setData] = useState<Store>(EMPTY)
   const [loaded,setLoaded] = useState(false)
   const [modal,setModal] = useState<ModalType|null>(null)
+  const [editing,setEditing] = useState<EditRecord|null>(null)
   const [prospectSearch,setProspectSearch] = useState('')
   const [prospectStage,setProspectStage] = useState('all')
   const [secondarySearch,setSecondarySearch] = useState('')
@@ -170,21 +172,20 @@ export default function RealtorPartnerEngine() {
       </>}
 
       {view==='prospects' && <>
-        <PageHead eyebrow="4-Step Realtor Prospecting" title="Prospects" copy="Your working prospect list. Keep untouched prospects as Not Started, record contact and meeting progress, then convert qualified relationships into Secondary." action={<button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Prospect</button>} />
+        <PageHead eyebrow="Realtor Prospecting" title="Prospects" copy="Your working prospect list. Keep untouched prospects as Not Started, record contact and meeting progress, then convert qualified relationships into Secondary." action={<button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Prospect</button>} />
         <Toolbar>
           <input value={prospectSearch} onChange={e=>setProspectSearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search agent, company, note..." />
           <select value={prospectStage} onChange={e=>setProspectStage(e.target.value)} className={input}>
             <option value="all">All stages</option><option value="0">Not started</option><option value="1">Initial contact</option><option value="2">Meeting</option>
           </select>
         </Toolbar>
-        <Table headers={['Agent','Production','Company','Phone','Email','Progress','Notes']} rows={shownProspects.map(a=>[
-          <InlineText key="n" value={a.name} onChange={value=>updateProspect(a.id,{name:value})}/>,
-          <InlineNumber key="p" value={a.production} onChange={value=>updateProspect(a.id,{production:value})}/>,
-          <InlineText key="c" value={a.company} onChange={value=>updateProspect(a.id,{company:value})}/>,
-          <InlineText key="ph" value={a.phone} onChange={value=>updateProspect(a.id,{phone:value})}/>,
-          <InlineText key="e" value={a.email} onChange={value=>updateProspect(a.id,{email:value})}/>,
-          <ProspectProgress key="s" value={a.stage} onSet={n=>setStage(a.id,n)} onConvert={()=>promoteSecondary(a.id)}/>,
-          <InlineNotes key="notes" value={a.notes} onChange={value=>updateProspect(a.id,{notes:value})}/>
+        <Table headers={['Agent','Production','Company','Contact','Progress','Notes']} rows={shownProspects.map(a=>[
+          <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'prospect',id:a.id})}/>,
+          a.production??'—',
+          a.company||'—',
+          a.phone||'—',
+          <ProgressBadge key="s" value={a.stage}/>,
+          <NotePreview key="notes" value={a.notes}/>
         ])}/>
       </>}
 
@@ -193,17 +194,14 @@ export default function RealtorPartnerEngine() {
         <Cadence label="Relationship cadence" items={['Call semi-monthly','Meet quarterly','Book / gift annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="BUS — Business" copy="Coaching, lead strategy, business planning, growth conversations."/><ClassCard title="BU — Backup" copy="Save deals, second opinions, difficult scenarios, fast-close resource."/><ClassCard title="PROG — Program" copy="Known specialist for VA or another product niche."/></div>
         <Toolbar><input value={secondarySearch} onChange={e=>setSecondarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search secondary partners..."/><select value={secondaryGroup} onChange={e=>setSecondaryGroup(e.target.value)} className={input}><option value="all">All groups</option><option>Bus</option><option>BU</option><option>Prog</option></select></Toolbar>
-        <Table headers={['Group','Agent','Company','Phone','Email','Families / Sides','Last Touch','Next Action','Notes','Graduation']} rows={shownSecondary.map(a=>[
-          <InlineSelect key="g" value={a.group} options={['Bus','BU','Prog']} onChange={value=>updateSecondary(a.id,{group:value as Secondary['group']})}/>,
-          <InlineText key="n" value={a.name} onChange={value=>updateSecondary(a.id,{name:value})}/>,
-          <InlineText key="c" value={a.company||''} onChange={value=>updateSecondary(a.id,{company:value})}/>,
-          <InlineText key="ph" value={a.phone} onChange={value=>updateSecondary(a.id,{phone:value})}/>,
-          <InlineText key="e" value={a.email} onChange={value=>updateSecondary(a.id,{email:value})}/>,
-          <InlineNumber key="ct" value={a.count} onChange={value=>updateSecondary(a.id,{count:value})}/>,
-          <InlineText key="lt" value={a.lastTouch} placeholder="Last touch" onChange={value=>updateSecondary(a.id,{lastTouch:value})}/>,
-          <InlineText key="na" value={a.nextAction} placeholder="Next action" onChange={value=>updateSecondary(a.id,{nextAction:value})}/>,
-          <InlineNotes key="notes" value={a.notes} onChange={value=>updateSecondary(a.id,{notes:value})}/>,
-          <button key="a" onClick={()=>promotePrimary(a.id)} className={miniPrimary}>Graduate → Primary</button>
+        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Next Action','Notes']} rows={shownSecondary.map(a=>[
+          <Pill key="g">{a.group}</Pill>,
+          <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'secondary',id:a.id})}/>,
+          a.phone||'—',
+          a.count??'—',
+          a.lastTouch||'—',
+          a.nextAction||'Set next touch',
+          <NotePreview key="notes" value={a.notes}/>
         ])}/>
       </>}
 
@@ -212,22 +210,33 @@ export default function RealtorPartnerEngine() {
         <Cadence label="Relationship cadence" items={['Call weekly','Meet monthly','Book / gift quarterly','Birthday annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="A — 1 transaction / month" copy="Highest-value partner tier."/><ClassCard title="B — 1 transaction / quarter" copy="Consistent producing relationship."/><ClassCard title="C — 1 transaction / year" copy="Maintain and develop the relationship."/></div>
         <Toolbar><input value={primarySearch} onChange={e=>setPrimarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search primary partners..."/><select value={primaryTier} onChange={e=>setPrimaryTier(e.target.value)} className={input}><option value="all">All tiers</option><option>A</option><option>B</option><option>C</option></select></Toolbar>
-        <Table headers={['Tier','Agent','Company','Phone','Email','Birthday','Partnership Tie','Families Helped','Last Touch','Next Action','Notes']} rows={shownPrimary.map(a=>[
-          <InlineSelect key="t" value={a.tier} options={['A','B','C']} onChange={value=>updatePrimary(a.id,{tier:value as Primary['tier']})}/>,
-          <InlineText key="n" value={a.name} onChange={value=>updatePrimary(a.id,{name:value})}/>,
-          <InlineText key="c" value={a.company||''} onChange={value=>updatePrimary(a.id,{company:value})}/>,
-          <InlineText key="ph" value={a.phone} onChange={value=>updatePrimary(a.id,{phone:value})}/>,
-          <InlineText key="e" value={a.email} onChange={value=>updatePrimary(a.id,{email:value})}/>,
-          <InlineText key="b" value={a.birthday} placeholder="Birthday" onChange={value=>updatePrimary(a.id,{birthday:value})}/>,
-          <InlineText key="tie" value={a.tie} placeholder="Partnership tie" onChange={value=>updatePrimary(a.id,{tie:value})}/>,
-          <InlineNumber key="f" value={a.families} onChange={value=>updatePrimary(a.id,{families:value})}/>,
-          <InlineText key="lt" value={a.lastTouch} placeholder="Last touch" onChange={value=>updatePrimary(a.id,{lastTouch:value})}/>,
-          <InlineText key="na" value={a.nextAction} placeholder="Next action" onChange={value=>updatePrimary(a.id,{nextAction:value})}/>,
-          <InlineNotes key="notes" value={a.notes||''} onChange={value=>updatePrimary(a.id,{notes:value})}/>
+        <Table headers={['Tier','Agent','Contact','Birthday','Partnership Tie','Families Helped','Last Touch','Next Action','Notes']} rows={shownPrimary.map(a=>[
+          <Pill key="t">{a.tier}</Pill>,
+          <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'primary',id:a.id})}/>,
+          a.phone||'—',
+          a.birthday||'—',
+          a.tie||'—',
+          a.families??'—',
+          a.lastTouch||'—',
+          a.nextAction||'Set next touch',
+          <NotePreview key="notes" value={a.notes}/>
         ])}/>
       </>}
 
       {view==='process' && <Process/>}
+
+      {editing && <RecordModal
+        record={editing}
+        data={data}
+        onClose={()=>setEditing(null)}
+        onSave={(type,id,patch)=>{
+          if(type==='prospect') updateProspect(id,patch as Partial<Prospect>)
+          else if(type==='secondary') updateSecondary(id,patch as Partial<Secondary>)
+          else updatePrimary(id,patch as Partial<Primary>)
+        }}
+        onConvertProspect={id=>{setEditing(null);promoteSecondary(id)}}
+        onGraduateSecondary={id=>{setEditing(null);promotePrimary(id)}}
+      />}
 
       {modal && <AgentModal type={modal} onClose={()=>setModal(null)} onSave={row=>{
         const destination=modal
@@ -287,6 +296,57 @@ function Process(){
   </>
 }
 
+function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSecondary}:{record:EditRecord;data:Store;onClose:()=>void;onSave:(type:ModalType,id:string,patch:Partial<Prospect>|Partial<Secondary>|Partial<Primary>)=>void;onConvertProspect:(id:string)=>void;onGraduateSecondary:(id:string)=>void}){
+  const source=record.type==='prospect'?data.prospects.find(x=>x.id===record.id):record.type==='secondary'?data.secondary.find(x=>x.id===record.id):data.primary.find(x=>x.id===record.id)
+  const [draft,setDraft]=useState<any>(source?{...source}:null)
+  if(!source||!draft)return null
+  const set=(key:string,value:any)=>setDraft((d:any)=>({...d,[key]:value}))
+  function save(){onSave(record.type,record.id,draft);onClose()}
+  const title=record.type==='prospect'?'Prospect Record':record.type==='secondary'?'Secondary Relationship':'Primary Relationship'
+
+  return <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#1f293733] p-6 md:p-12" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
+    <div className="w-full max-w-[760px] rounded-2xl border border-[#d8dee8] bg-white p-6">
+      <div className="mb-5 flex border-b border-[#d8dee8] pb-4"><div><div className="text-[10px] font-extrabold uppercase tracking-[.08em] text-[#6b7280]">{title}</div><h2 className="mt-1 text-2xl font-extrabold">{draft.name||'Agent'}</h2></div><button onClick={onClose} className="ml-auto text-2xl text-[#6b7280]">×</button></div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label="Agent Name"><input className={input} value={draft.name||''} onChange={e=>set('name',e.target.value)}/></Field>
+        <Field label="Company"><input className={input} value={draft.company||''} onChange={e=>set('company',e.target.value)}/></Field>
+        <Field label="Phone"><input className={input} value={draft.phone||''} onChange={e=>set('phone',e.target.value)}/></Field>
+        <Field label="Email"><input className={input} value={draft.email||''} onChange={e=>set('email',e.target.value)}/></Field>
+
+        {record.type==='prospect'&&<>
+          <Field label="Production / Sides"><input type="number" min="0" className={input} value={draft.production??''} onChange={e=>set('production',e.target.value===''?null:Number(e.target.value))}/></Field>
+          <Field label="Prospect Stage"><select className={input} value={draft.stage} onChange={e=>set('stage',Number(e.target.value))}><option value={0}>Not Started</option><option value={1}>Initial Contact</option><option value={2}>Meeting</option></select></Field>
+        </>}
+
+        {record.type==='secondary'&&<>
+          <Field label="Classification"><select className={input} value={draft.group} onChange={e=>set('group',e.target.value)}><option value="Bus">Bus — Business</option><option value="BU">BU — Backup</option><option value="Prog">Prog — Program</option></select></Field>
+          <Field label="Families / Sides"><input type="number" min="0" className={input} value={draft.count??''} onChange={e=>set('count',e.target.value===''?null:Number(e.target.value))}/></Field>
+          <Field label="Last Touch"><input className={input} value={draft.lastTouch||''} onChange={e=>set('lastTouch',e.target.value)} placeholder="e.g. Oct 19 — phone call"/></Field>
+          <Field label="Next Action"><input className={input} value={draft.nextAction||''} onChange={e=>set('nextAction',e.target.value)} placeholder="e.g. Call next Monday"/></Field>
+        </>}
+
+        {record.type==='primary'&&<>
+          <Field label="Tier"><select className={input} value={draft.tier} onChange={e=>set('tier',e.target.value)}><option>A</option><option>B</option><option>C</option></select></Field>
+          <Field label="Families Helped"><input type="number" min="0" className={input} value={draft.families??''} onChange={e=>set('families',e.target.value===''?null:Number(e.target.value))}/></Field>
+          <Field label="Birthday"><input className={input} value={draft.birthday||''} onChange={e=>set('birthday',e.target.value)} placeholder="Birthday"/></Field>
+          <Field label="Partnership Tie"><input className={input} value={draft.tie||''} onChange={e=>set('tie',e.target.value)} placeholder="Business / VA / Backup / etc."/></Field>
+          <Field label="Last Touch"><input className={input} value={draft.lastTouch||''} onChange={e=>set('lastTouch',e.target.value)} placeholder="e.g. Oct 19 — phone call"/></Field>
+          <Field label="Next Action"><input className={input} value={draft.nextAction||''} onChange={e=>set('nextAction',e.target.value)} placeholder="e.g. Lunch next week"/></Field>
+        </>}
+
+        <div className="md:col-span-2"><Field label="Notes"><textarea className={input+' min-h-[120px]'} value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="Relationship notes, meeting takeaways, opportunities, follow-up ideas..."/></Field></div>
+      </div>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#d8dee8] pt-4">
+        <div>
+          {record.type==='prospect'&&<button onClick={()=>{onSave('prospect',record.id,draft);onConvertProspect(record.id)}} className={miniPrimary}>Convert → Secondary</button>}
+          {record.type==='secondary'&&<button onClick={()=>{onSave('secondary',record.id,draft);onGraduateSecondary(record.id)}} className={miniPrimary}>Graduate → Primary</button>}
+        </div>
+        <div className="flex gap-2"><button onClick={onClose} className={mini}>Cancel</button><button onClick={save} className={miniPrimary}>Save Changes</button></div>
+      </div>
+    </div>
+  </div>
+}
+
 function AgentModal({type,onClose,onSave}:{type:ModalType;onClose:()=>void;onSave:(row:Prospect|Secondary|Primary)=>void}){
   const [name,setName]=useState('')
   const [company,setCompany]=useState('')
@@ -306,7 +366,7 @@ function AgentModal({type,onClose,onSave}:{type:ModalType;onClose:()=>void;onSav
 
   return <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#1f293733] p-12" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
     <div className="w-full max-w-[650px] rounded-2xl border border-[#d8dee8] bg-white p-6">
-      <div className="mb-4 flex border-b border-[#d8dee8] pb-4"><div><h2 className="text-xl font-extrabold">Add {type==='prospect'?'Prospect':type==='secondary'?'Secondary Partner':'Primary Partner'}</h2><p className="mt-1 text-xs text-[#6b7280]">{type==='prospect'?'Add an agent to the 4-step prospecting queue.':'Add an agent directly to this relationship level.'}</p></div><button onClick={onClose} className="ml-auto text-2xl text-[#6b7280]">×</button></div>
+      <div className="mb-4 flex border-b border-[#d8dee8] pb-4"><div><h2 className="text-xl font-extrabold">Add {type==='prospect'?'Prospect':type==='secondary'?'Secondary Partner':'Primary Partner'}</h2><p className="mt-1 text-xs text-[#6b7280]">{type==='prospect'?'Add an agent to the prospecting queue.':'Add an agent directly to this relationship level.'}</p></div><button onClick={onClose} className="ml-auto text-2xl text-[#6b7280]">×</button></div>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Agent Name"><input className={input} value={name} onChange={e=>setName(e.target.value)}/></Field>
         <Field label="Company"><input className={input} value={company} onChange={e=>setCompany(e.target.value)}/></Field>
@@ -326,11 +386,9 @@ function Metric({label,value,sub}:{label:string;value:string|number;sub:string})
 function Flow({n,title,copy}:{n:string;title:string;copy:string}){return <div className="rounded-[14px] border border-[#d8dee8] bg-white p-4"><div className="text-[10px] font-extrabold tracking-[.08em] text-[#6b7280]">{n}</div><div className="mt-1 text-base font-black">{title}</div><p className="mt-1 text-xs text-[#6b7280]">{copy}</p></div>}
 function Toolbar({children}:{children:ReactNode}){return <div className="flex flex-wrap gap-2 rounded-t-[14px] border border-b-0 border-[#d8dee8] bg-white p-3">{children}</div>}
 function Table({headers,rows}:{headers:string[];rows:ReactNode[][]}){return <div className="overflow-auto rounded-b-[14px] border border-[#d8dee8] bg-white"><table className="w-full min-w-[960px] border-collapse"><thead><tr>{headers.map((h,i)=><th key={h+i} className="border-b border-[#d8dee8] bg-[#f7f9fb] px-2.5 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.07em] text-[#6b7280]">{h}</th>)}</tr></thead><tbody>{rows.length===0?<tr><td colSpan={headers.length} className="p-4 text-sm text-[#6b7280]">No matching records.</td></tr>:rows.map((row,i)=><tr key={i} className="hover:bg-[#fbfcfd]">{row.map((cell,j)=><td key={j} className="border-b border-[#e9edf2] px-2.5 py-3 align-middle text-sm">{cell}</td>)}</tr>)}</tbody></table></div>}
-function ProspectProgress({value,onSet,onConvert}:{value:number;onSet:(n:number)=>void;onConvert:()=>void}){return <div className="min-w-[230px]"><div className="flex flex-wrap gap-1"><button onClick={()=>onSet(value===1?0:1)} className={'rounded-[8px] border px-2 py-1.5 text-[10px] font-extrabold '+(value>=1?'border-[#1f4b7a] bg-[#1f4b7a] text-white':'border-[#d8dee8] bg-white text-[#6b7280]')}>1 · Initial Contact</button><button onClick={()=>onSet(value===2?1:2)} className={'rounded-[8px] border px-2 py-1.5 text-[10px] font-extrabold '+(value>=2?'border-[#1f4b7a] bg-[#1f4b7a] text-white':'border-[#d8dee8] bg-white text-[#6b7280]')}>2 · Meeting</button><button onClick={onConvert} className="rounded-[8px] border border-[#1f4b7a] bg-white px-2 py-1.5 text-[10px] font-extrabold text-[#1f4b7a]">3 · Convert →</button></div><div className="mt-1 text-[11px] text-[#6b7280]">{stageLabel(value)}</div></div>}
-function InlineText({value,onChange,placeholder}:{value:string;onChange:(value:string)=>void;placeholder?:string}){return <input value={value||''} placeholder={placeholder||'—'} onChange={e=>onChange(e.target.value)} className="w-full min-w-[105px] rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-sm outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white"/>}
-function InlineNumber({value,onChange}:{value:number|null;onChange:(value:number|null)=>void}){return <input type="number" min="0" value={value??''} placeholder="—" onChange={e=>onChange(e.target.value===''?null:Number(e.target.value))} className="w-[82px] rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-sm outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white"/>}
-function InlineSelect({value,options,onChange}:{value:string;options:string[];onChange:(value:string)=>void}){return <select value={value} onChange={e=>onChange(e.target.value)} className="rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-xs font-extrabold outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white">{options.map(x=><option key={x}>{x}</option>)}</select>}
-function InlineNotes({value,onChange}:{value:string;onChange:(value:string)=>void}){return <textarea value={value||''} placeholder="Add note..." onChange={e=>onChange(e.target.value)} rows={2} className="min-w-[190px] resize-y rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-xs leading-5 outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white"/>}
+function ProgressBadge({value}:{value:number}){return <span className="rounded-full border border-[#bfd0df] bg-[#eef4fa] px-2 py-1 text-[10px] font-extrabold text-[#1f4b7a]">{stageLabel(value)}</span>}
+function RecordName({name,sub,onClick}:{name:string;sub:string;onClick:()=>void}){return <button onClick={onClick} className="text-left"><div className="font-extrabold text-[#1f4b7a] hover:underline">{name}</div><div className="text-[11px] text-[#6b7280]">{sub}</div></button>}
+function NotePreview({value}:{value:string}){const text=(value||'').trim();return <div className="max-w-[250px] truncate text-xs text-[#4b5563]" title={text}>{text||'—'}</div>}
 function Name({name,sub}:{name:string;sub:string}){return <div><div className="font-extrabold">{name}</div><div className="text-[11px] text-[#6b7280]">{sub}</div></div>}
 function Pill({children}:{children:ReactNode}){return <span className="rounded-full border border-[#bfd0df] bg-[#eef4fa] px-2 py-1 text-[10px] font-extrabold text-[#1f4b7a]">{children}</span>}
 function Cadence({label,items}:{label:string;items:string[]}){return <div className="mb-4 grid overflow-hidden rounded-[14px] border border-[#bfd0df] bg-[#f7fbff] md:grid-cols-[180px_1fr]"><div className="border-b border-[#bfd0df] p-4 font-black md:border-b-0 md:border-r">{label}</div><div className="flex flex-wrap gap-5 p-4">{items.map(x=><span key={x} className="text-xs">{x}</span>)}</div></div>}
