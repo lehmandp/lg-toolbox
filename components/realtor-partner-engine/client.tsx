@@ -59,6 +59,8 @@ export default function RealtorPartnerEngine() {
   const [view,setView] = useState<View>('dashboard')
   const [data,setData] = useState<Store>(EMPTY)
   const [loaded,setLoaded] = useState(false)
+  const [serverReady,setServerReady] = useState(false)
+  const [syncState,setSyncState] = useState<'loading'|'saved'|'saving'|'error'>('loading')
   const [modal,setModal] = useState<ModalType|null>(null)
   const [editing,setEditing] = useState<EditRecord|null>(null)
   const [prospectSearch,setProspectSearch] = useState('')
@@ -69,17 +71,62 @@ export default function RealtorPartnerEngine() {
   const [primaryTier,setPrimaryTier] = useState('all')
 
   useEffect(()=>{
-    try {
-      const saved = window.localStorage.getItem(KEY)
-      if (saved) setData(JSON.parse(saved) as Store)
-    } catch {}
-    setLoaded(true)
+    let cancelled=false
+    async function load(){
+      let local:Store=EMPTY
+      try{
+        const saved=window.localStorage.getItem(KEY)
+        if(saved)local=JSON.parse(saved) as Store
+      }catch{}
+      try{
+        const response=await fetch('/api/realtor-partner-engine',{cache:'no-store'})
+        if(!response.ok)throw new Error('Unable to load Realtor data.')
+        const payload=await response.json()
+        const remote=(payload?.store??EMPTY) as Store
+        const remoteCount=(remote.prospects?.length??0)+(remote.secondary?.length??0)+(remote.primary?.length??0)
+        const localCount=(local.prospects?.length??0)+(local.secondary?.length??0)+(local.primary?.length??0)
+        if(cancelled)return
+        if(remoteCount>0){
+          setData(remote)
+          window.localStorage.setItem(KEY,JSON.stringify(remote))
+        }else if(localCount>0){
+          setData(local)
+          const migrate=await fetch('/api/realtor-partner-engine',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({store:local})})
+          if(!migrate.ok)throw new Error('Unable to migrate browser Realtor data.')
+        }else{
+          setData(EMPTY)
+        }
+        setSyncState('saved')
+      }catch(error){
+        if(cancelled)return
+        if((local.prospects?.length??0)+(local.secondary?.length??0)+(local.primary?.length??0)>0)setData(local)
+        setSyncState('error')
+      }finally{
+        if(!cancelled){
+          setLoaded(true)
+          setServerReady(true)
+        }
+      }
+    }
+    void load()
+    return()=>{cancelled=true}
   },[])
 
   useEffect(()=>{
-    if (!loaded) return
-    window.localStorage.setItem(KEY, JSON.stringify(data))
-  },[data,loaded])
+    if(!loaded||!serverReady)return
+    window.localStorage.setItem(KEY,JSON.stringify(data))
+    setSyncState('saving')
+    const timer=window.setTimeout(async()=>{
+      try{
+        const response=await fetch('/api/realtor-partner-engine',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({store:data})})
+        if(!response.ok)throw new Error('Save failed.')
+        setSyncState('saved')
+      }catch{
+        setSyncState('error')
+      }
+    },500)
+    return()=>window.clearTimeout(timer)
+  },[data,loaded,serverReady])
 
   const activeTouches = data.prospects.filter(x=>x.stage>0).length
   const relationshipPotential = ((data.secondary.length + data.primary.length) * 0.1875).toFixed(1)
@@ -358,6 +405,24 @@ export default function RealtorPartnerEngine() {
     a.click()
     URL.revokeObjectURL(url)
   }
+  async function restoreBackup(file:File){
+    try{
+      const parsed=JSON.parse(await file.text()) as Store
+      if(!parsed||!Array.isArray(parsed.prospects)||!Array.isArray(parsed.secondary)||!Array.isArray(parsed.primary))throw new Error('Invalid backup')
+      if(!window.confirm('Restore this Realtor Partner Engine backup? This will replace the current Realtor database for your account.'))return
+      setData(parsed)
+      window.localStorage.setItem(KEY,JSON.stringify(parsed))
+      setSyncState('saving')
+      const response=await fetch('/api/realtor-partner-engine',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({store:parsed})})
+      if(!response.ok)throw new Error('Restore failed')
+      setSyncState('saved')
+      window.alert('Realtor Partner Engine backup restored to your account.')
+    }catch{
+      setSyncState('error')
+      window.alert('That file could not be restored. Please use a Realtor Partner Engine JSON export.')
+    }
+  }
+
 
   return (
     <main className="w-full p-[22px] text-[#1f2937]">
@@ -374,8 +439,10 @@ export default function RealtorPartnerEngine() {
             <button key={key} onClick={()=>setView(key)} className={'rounded-[9px] px-2.5 py-2 text-xs font-extrabold '+(view===key?'bg-[#1f4b7a] text-white':'hover:bg-[#eef4fa]')}>{label}</button>
           ))}
         </nav>
-        <div className="flex gap-2">
-          <button onClick={exportData} className="rounded-[10px] border border-[#d8dee8] bg-white px-3 py-2 text-xs font-extrabold">Export</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={"text-[10px] font-extrabold "+(syncState==='error'?'text-[#b91c1c]':'text-[#6b7280]')}>{syncState==='loading'?'Loading data…':syncState==='saving'?'Saving…':syncState==='error'?'Sync error':'Saved to account'}</span>
+          <button onClick={exportData} className="rounded-[10px] border border-[#d8dee8] bg-white px-3 py-2 text-xs font-extrabold">Export Backup</button>
+          <label className="cursor-pointer rounded-[10px] border border-[#d8dee8] bg-white px-3 py-2 text-xs font-extrabold">Restore Backup<input type="file" accept=".json,application/json" className="hidden" onChange={e=>{const file=e.target.files?.[0];if(file)void restoreBackup(file);e.currentTarget.value='' }}/></label>
           <button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-3 py-2 text-xs font-extrabold text-white">+ Add Agent</button>
         </div>
       </div>
@@ -491,7 +558,7 @@ export default function RealtorPartnerEngine() {
         setView(destination==='prospect'?'prospects':destination)
       }}/>}
 
-      <p className="mt-5 text-xs text-[#6b7280]">Realtor relationship data is saved automatically in this browser. Use Export periodically for a portable backup.</p>
+      <p className="mt-5 text-xs text-[#6b7280]">Realtor relationship data is saved to your Toolbox account in Supabase. Browser storage is kept only as a local fallback; use Export Backup periodically for a portable copy.</p>
     </main>
   )
 }
