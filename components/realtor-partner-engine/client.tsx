@@ -277,13 +277,15 @@ export default function RealtorPartnerEngine() {
           <Flow n="03 — PRIMARY" title="Deepen the relationship" copy="Move proven partners into higher-touch relationship management and A/B/C productivity tiers." />
         </div>
         <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
-          <section className="rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
+          <section className="flex h-[245px] flex-col rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
             <div className="mb-3 flex justify-between"><h2 className="text-xl font-extrabold">Prospecting Queue</h2><span className="text-[11px] text-[#6b7280]">{activeTouches} active touches</span></div>
-            {data.prospects.length===0?<p className="text-sm text-[#6b7280]">No prospects yet. Add an agent to begin.</p>:data.prospects.slice().sort((a,b)=>b.stage-a.stage).slice(0,6).map(a=>(
-              <div key={a.id} className="flex items-center border-b border-[#e9edf2] py-2.5 last:border-b-0"><div><div className="text-[13px] font-extrabold">{a.name}</div><div className="text-[11px] text-[#6b7280]">{a.company||a.notes||'Prospect'}</div></div><span className="ml-auto rounded-full border border-[#bfd0df] bg-[#eef4fa] px-2 py-1 text-[10px] font-extrabold text-[#1f4b7a]">{stageLabel(a.stage)}</span></div>
-            ))}
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              {data.prospects.length===0?<p className="text-sm text-[#6b7280]">No prospects yet. Add an agent to begin.</p>:data.prospects.slice().sort((a,b)=>b.stage-a.stage).map(a=>(
+                <div key={a.id} className="flex items-center border-b border-[#e9edf2] py-2.5 last:border-b-0"><div><div className="text-[13px] font-extrabold">{a.name}</div><div className="text-[11px] text-[#6b7280]">{a.company||a.notes||'Prospect'}</div></div><span className="ml-auto rounded-full border border-[#bfd0df] bg-[#eef4fa] px-2 py-1 text-[10px] font-extrabold text-[#1f4b7a]">{stageLabel(a.stage)}</span></div>
+              ))}
+            </div>
           </section>
-          <section className="rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
+          <section className="h-[245px] rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
             <h2 className="mb-3 text-xl font-extrabold">Operating Rules</h2>
             <p className="text-sm">The first win is not becoming the agent&apos;s primary lender. The first win is becoming a credible <strong>secondary resource</strong> and earning opportunities over time.</p>
             <div className="my-4 rounded-[10px] bg-[#eef4fa] p-3 text-sm"><strong>Model:</strong> each developed agent relationship is worth approximately <strong>.1875 deals per month</strong>.</div>
@@ -305,9 +307,9 @@ export default function RealtorPartnerEngine() {
           a.production??'—',
           a.company||'—',
           a.phone||'—',
-          <ProgressBadge key="s" value={a.stage}/>,
+          <InlineStage key="s" value={a.stage} onChange={stage=>updateProspect(a.id,{stage})}/>,
           <NotePreview key="notes" value={a.notes}/>,
-          <NotePreview key="callnotes" value={a.callNotes||''}/>
+          <InlineCallNotes key="callnotes" value={a.callNotes||''} onChange={callNotes=>updateProspect(a.id,{callNotes})}/>
         ])}/>
       </>}
 
@@ -321,9 +323,9 @@ export default function RealtorPartnerEngine() {
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'secondary',id:a.id})}/>,
           a.phone||'—',
           a.count??'—',
-          prettyTouchDate(a.lastTouch),
+          <InlineLastTouch key="touch" value={a.lastTouch||''} onChange={lastTouch=>updateSecondary(a.id,{lastTouch})}/>,
           <NotePreview key="notes" value={a.notes}/>,
-          <NotePreview key="callnotes" value={a.callNotes||''}/>
+          <InlineCallNotes key="callnotes" value={a.callNotes||''} onChange={callNotes=>updateSecondary(a.id,{callNotes})}/>
         ])}/>
       </>}
 
@@ -339,9 +341,9 @@ export default function RealtorPartnerEngine() {
           a.birthday||'—',
           a.tie||'—',
           a.families??'—',
-          prettyTouchDate(a.lastTouch),
+          <InlineLastTouch key="touch" value={a.lastTouch||''} onChange={lastTouch=>updatePrimary(a.id,{lastTouch})}/>,
           <NotePreview key="notes" value={a.notes}/>,
-          <NotePreview key="callnotes" value={a.callNotes||''}/>
+          <InlineCallNotes key="callnotes" value={a.callNotes||''} onChange={callNotes=>updatePrimary(a.id,{callNotes})}/>
         ])}/>
       </>}
 
@@ -509,6 +511,9 @@ function Metric({label,value,sub}:{label:string;value:string|number;sub:string})
 function Flow({n,title,copy}:{n:string;title:string;copy:string}){return <div className="rounded-[14px] border border-[#d8dee8] bg-white p-4"><div className="text-[10px] font-extrabold tracking-[.08em] text-[#6b7280]">{n}</div><div className="mt-1 text-base font-black">{title}</div><p className="mt-1 text-xs text-[#6b7280]">{copy}</p></div>}
 function Toolbar({children}:{children:ReactNode}){return <div className="flex flex-wrap gap-2 rounded-t-[14px] border border-b-0 border-[#d8dee8] bg-white p-3">{children}</div>}
 function Table({headers,rows}:{headers:string[];rows:ReactNode[][]}){return <div className="overflow-auto rounded-b-[14px] border border-[#d8dee8] bg-white"><table className="w-full min-w-[960px] border-collapse"><thead><tr>{headers.map((h,i)=><th key={h+i} className="border-b border-[#d8dee8] bg-[#f7f9fb] px-2.5 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.07em] text-[#6b7280]">{h}</th>)}</tr></thead><tbody>{rows.length===0?<tr><td colSpan={headers.length} className="p-4 text-sm text-[#6b7280]">No matching records.</td></tr>:rows.map((row,i)=><tr key={i} className="hover:bg-[#fbfcfd]">{row.map((cell,j)=><td key={j} className="border-b border-[#e9edf2] px-2.5 py-3 align-middle text-sm">{cell}</td>)}</tr>)}</tbody></table></div>}
+function InlineStage({value,onChange}:{value:number;onChange:(value:number)=>void}){return <select value={value} onChange={e=>onChange(Number(e.target.value))} className="rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs font-extrabold text-[#1f4b7a] outline-none focus:border-[#1f4b7a]"><option value={0}>Not Started</option><option value={1}>Initial Contact</option><option value={2}>Meeting</option></select>}
+function InlineCallNotes({value,onChange}:{value:string;onChange:(value:string)=>void}){return <textarea value={value||''} onChange={e=>onChange(e.target.value)} rows={2} placeholder="Call notes..." className="min-w-[190px] resize-y rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs leading-5 outline-none focus:border-[#1f4b7a]"/>}
+function InlineLastTouch({value,onChange}:{value:string;onChange:(value:string)=>void}){return <div className="flex min-w-[180px] items-center gap-1.5"><input type="date" value={value||''} onChange={e=>onChange(e.target.value)} className="min-w-0 rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#1f4b7a]"/><button type="button" onClick={()=>onChange(todayKey())} className="rounded-[8px] border border-[#d8dee8] bg-white px-2 py-1.5 text-[10px] font-extrabold">Today</button></div>}
 function ProgressBadge({value}:{value:number}){return <span className="rounded-full border border-[#bfd0df] bg-[#eef4fa] px-2 py-1 text-[10px] font-extrabold text-[#1f4b7a]">{stageLabel(value)}</span>}
 function RecordName({name,sub,onClick}:{name:string;sub:string;onClick:()=>void}){return <button onClick={onClick} className="text-left"><div className="font-extrabold text-[#1f4b7a] hover:underline">{name}</div><div className="text-[11px] text-[#6b7280]">{sub}</div></button>}
 function NotePreview({value}:{value:string}){const text=(value||'').trim();return <div className="max-w-[250px] truncate text-xs text-[#4b5563]" title={text}>{text||'—'}</div>}
