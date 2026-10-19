@@ -117,6 +117,15 @@ export default function RealtorPartnerEngine() {
   function updatePrimary(id:string,patch:Partial<Primary>){
     setData(d=>({...d,primary:d.primary.map(p=>p.id===id?{...p,...patch}:p)}))
   }
+  function deleteAgent(type:ModalType,id:string){
+    setData(d=>type==='prospect'
+      ? {...d,prospects:d.prospects.filter(p=>p.id!==id)}
+      : type==='secondary'
+        ? {...d,secondary:d.secondary.filter(p=>p.id!==id)}
+        : {...d,primary:d.primary.filter(p=>p.id!==id)}
+    )
+  }
+
 
   function promoteSecondary(id:string){
     const source=data.prospects.find(p=>p.id===id)
@@ -310,14 +319,15 @@ export default function RealtorPartnerEngine() {
             <option value="all">All stages</option><option value="0">Not started</option><option value="1">Initial contact</option><option value="2">Meeting</option>
           </select>
         </Toolbar>
-        <Table headers={['Agent','Production','Company','Contact','Progress','Notes','Call Notes']} rows={shownProspects.map(a=>[
+        <Table headers={['Agent','Production','Company','Contact','Notes','Call Notes','Status','Promote']} rows={shownProspects.map(a=>[
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'prospect',id:a.id})}/>,
           a.production??'—',
           a.company||'—',
           a.phone||'—',
-          <InlineStage key="s" value={a.stage} onChange={stage=>updateProspect(a.id,{stage})}/>,
           <NotePreview key="notes" value={a.notes}/>,
-          <InlineCallNotes key="callnotes" value={a.callNotes||''} onChange={callNotes=>updateProspect(a.id,{callNotes})}/>
+          <InlineCallNotes key="callnotes" value={a.callNotes||''} onChange={callNotes=>updateProspect(a.id,{callNotes})}/>,
+          <InlineStage key="s" value={a.stage} onChange={stage=>updateProspect(a.id,{stage})}/>,
+          <button key="promote" onClick={()=>promoteSecondary(a.id)} className={miniPrimary}>Promote → Secondary</button>
         ])}/>
       </>}
 
@@ -326,14 +336,15 @@ export default function RealtorPartnerEngine() {
         <Cadence label="Relationship cadence" items={['Call semi-monthly','Meet quarterly','Book / gift annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="BUS — Business" copy="Coaching, lead strategy, business planning, growth conversations."/><ClassCard title="BU — Backup" copy="Save deals, second opinions, difficult scenarios, fast-close resource."/><ClassCard title="PROG — Program" copy="Known specialist for VA or another product niche."/></div>
         <Toolbar><input value={secondarySearch} onChange={e=>setSecondarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search secondary partners..."/><select value={secondaryGroup} onChange={e=>setSecondaryGroup(e.target.value)} className={input}><option value="all">All groups</option><option>Bus</option><option>BU</option><option>Prog</option></select><div className="ml-auto flex flex-wrap gap-2"><button onClick={()=>printCallList('secondary')} className={mini}>Print / PDF Call List</button><button onClick={()=>exportCallCsv('secondary')} className={mini}>Export Dialer CSV</button></div></Toolbar>
-        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Notes','Call Notes']} rows={shownSecondary.map(a=>[
+        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Notes','Call Notes','Promote']} rows={shownSecondary.map(a=>[
           <Pill key="g">{a.group}</Pill>,
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'secondary',id:a.id})}/>,
           a.phone||'—',
           a.count??'—',
           <InlineLastTouch key="touch" value={a.lastTouch||''} onChange={lastTouch=>updateSecondary(a.id,{lastTouch})}/>,
           <NotePreview key="notes" value={a.notes}/>,
-          <InlineCallNotes key="callnotes" value={a.callNotes||''} onChange={callNotes=>updateSecondary(a.id,{callNotes})}/>
+          <InlineCallNotes key="callnotes" value={a.callNotes||''} onChange={callNotes=>updateSecondary(a.id,{callNotes})}/>,
+          <button key="promote" onClick={()=>promotePrimary(a.id)} className={miniPrimary}>Promote → Primary</button>
         ])}/>
       </>}
 
@@ -370,6 +381,7 @@ export default function RealtorPartnerEngine() {
         onGraduateSecondary={id=>{setEditing(null);promotePrimary(id)}}
         onMoveSecondaryToProspect={id=>{setEditing(null);demoteProspect(id)}}
         onMovePrimaryToSecondary={id=>{setEditing(null);demoteSecondary(id)}}
+        onDeleteAgent={(type,id)=>{setEditing(null);deleteAgent(type,id)}}
       />}
 
       {modal && <AgentModal type={modal} onClose={()=>setModal(null)} onSave={row=>{
@@ -430,7 +442,7 @@ function Process(){
   </>
 }
 
-function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSecondary,onMoveSecondaryToProspect,onMovePrimaryToSecondary}:{record:EditRecord;data:Store;onClose:()=>void;onSave:(type:ModalType,id:string,patch:Partial<Prospect>|Partial<Secondary>|Partial<Primary>)=>void;onConvertProspect:(id:string)=>void;onGraduateSecondary:(id:string)=>void;onMoveSecondaryToProspect:(id:string)=>void;onMovePrimaryToSecondary:(id:string)=>void}){
+function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSecondary,onMoveSecondaryToProspect,onMovePrimaryToSecondary,onDeleteAgent}:{record:EditRecord;data:Store;onClose:()=>void;onSave:(type:ModalType,id:string,patch:Partial<Prospect>|Partial<Secondary>|Partial<Primary>)=>void;onConvertProspect:(id:string)=>void;onGraduateSecondary:(id:string)=>void;onMoveSecondaryToProspect:(id:string)=>void;onMovePrimaryToSecondary:(id:string)=>void;onDeleteAgent:(type:ModalType,id:string)=>void}){
   const source=record.type==='prospect'?data.prospects.find(x=>x.id===record.id):record.type==='secondary'?data.secondary.find(x=>x.id===record.id):data.primary.find(x=>x.id===record.id)
   const [draft,setDraft]=useState<any>(source?{...source}:null)
   if(!source||!draft)return null
@@ -471,12 +483,9 @@ function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSec
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#d8dee8] pt-4">
         <div className="flex flex-wrap gap-2">
-          {record.type==='prospect'&&<button onClick={()=>{onSave('prospect',record.id,draft);onConvertProspect(record.id)}} className={miniPrimary}>Convert → Secondary</button>}
-          {record.type==='secondary'&&<>
-            <button onClick={()=>{onSave('secondary',record.id,draft);onMoveSecondaryToProspect(record.id)}} className={mini}>← Move to Prospect</button>
-            <button onClick={()=>{onSave('secondary',record.id,draft);onGraduateSecondary(record.id)}} className={miniPrimary}>Graduate → Primary</button>
-          </>}
+          {record.type==='secondary'&&<button onClick={()=>{onSave('secondary',record.id,draft);onMoveSecondaryToProspect(record.id)}} className={mini}>← Move to Prospect</button>}
           {record.type==='primary'&&<button onClick={()=>{onSave('primary',record.id,draft);onMovePrimaryToSecondary(record.id)}} className={mini}>← Move to Secondary</button>}
+          <button onClick={()=>{if(window.confirm('Delete '+(draft.name||'this agent')+' from the Realtor Partner Engine? This cannot be undone.'))onDeleteAgent(record.type,record.id)}} className="rounded-[9px] border border-[#dc2626] bg-white px-3 py-2 text-xs font-extrabold text-[#b91c1c]">Delete Agent</button>
         </div>
         <div className="flex gap-2"><button onClick={onClose} className={mini}>Cancel</button><button onClick={save} className={miniPrimary}>Save Changes</button></div>
       </div>
