@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 type View = 'dashboard' | 'prospects' | 'secondary' | 'primary' | 'process'
 type ModalType = 'prospect' | 'secondary' | 'primary'
-type Prospect = { id:string; name:string; company:string; phone:string; email:string; production:number|null; notes:string; stage:number }
-type Secondary = { id:string; group:'Bus'|'BU'|'Prog'; name:string; company:string; phone:string; email:string; count:number|null; notes:string; lastTouch:string; nextAction:string }
-type Primary = { id:string; tier:'A'|'B'|'C'; name:string; company:string; phone:string; email:string; birthday:string; tie:string; families:number|null; notes:string; lastTouch:string; nextAction:string }
+type Prospect = { id:string; name:string; company:string; phone:string; email:string; production:number|null; notes:string; callNotes:string; stage:number }
+type Secondary = { id:string; group:'Bus'|'BU'|'Prog'; name:string; company:string; phone:string; email:string; count:number|null; notes:string; callNotes:string; lastTouch:string; nextAction:string }
+type Primary = { id:string; tier:'A'|'B'|'C'; name:string; company:string; phone:string; email:string; birthday:string; tie:string; families:number|null; notes:string; callNotes:string; lastTouch:string; nextAction:string }
 type Store = { prospects:Prospect[]; secondary:Secondary[]; primary:Primary[] }
 type EditRecord = { type:ModalType; id:string }
 
@@ -32,6 +32,28 @@ function csvCell(value:unknown){
 function htmlEscape(value:unknown){
   return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]||ch))
 }
+function parseCsv(text:string){
+  const rows:string[][]=[]
+  let row:string[]=[],field='',quoted=false
+  for(let i=0;i<text.length;i++){
+    const ch=text[i]
+    if(quoted){
+      if(ch==='"'&&text[i+1]==='"'){field+='"';i++}
+      else if(ch==='"'){quoted=false}
+      else field+=ch
+    }else{
+      if(ch==='"')quoted=true
+      else if(ch===','){row.push(field);field=''}
+      else if(ch==='\n'){row.push(field.replace(/\r$/,''));rows.push(row);row=[];field=''}
+      else field+=ch
+    }
+  }
+  row.push(field.replace(/\r$/,''))
+  if(row.some(x=>x.trim()))rows.push(row)
+  return rows
+}
+function normalizeHeader(value:string){return value.trim().toLowerCase().replace(/[^a-z0-9]/g,'')}
+
 
 export default function RealtorPartnerEngine() {
   const [view,setView] = useState<View>('dashboard')
@@ -64,19 +86,19 @@ export default function RealtorPartnerEngine() {
 
   const shownProspects = useMemo(()=>data.prospects.filter(a=>{
     const q=prospectSearch.toLowerCase()
-    return (!q || (a.name+' '+a.company+' '+a.notes+' '+a.email).toLowerCase().includes(q))
+    return (!q || (a.name+' '+a.company+' '+a.notes+' '+(a.callNotes||'')+' '+a.email).toLowerCase().includes(q))
       && (prospectStage==='all' || String(a.stage)===prospectStage)
   }),[data.prospects,prospectSearch,prospectStage])
 
   const shownSecondary = useMemo(()=>data.secondary.filter(a=>{
     const q=secondarySearch.toLowerCase()
-    return (!q || (a.name+' '+a.group+' '+a.notes+' '+a.email).toLowerCase().includes(q))
+    return (!q || (a.name+' '+a.group+' '+a.notes+' '+(a.callNotes||'')+' '+a.email).toLowerCase().includes(q))
       && (secondaryGroup==='all' || a.group===secondaryGroup)
   }),[data.secondary,secondarySearch,secondaryGroup])
 
   const shownPrimary = useMemo(()=>data.primary.filter(a=>{
     const q=primarySearch.toLowerCase()
-    return (!q || (a.name+' '+a.tier+' '+a.tie+' '+a.email).toLowerCase().includes(q))
+    return (!q || (a.name+' '+a.tier+' '+a.tie+' '+(a.notes||'')+' '+(a.callNotes||'')+' '+a.email).toLowerCase().includes(q))
       && (primaryTier==='all' || a.tier===primaryTier)
   }),[data.primary,primarySearch,primaryTier])
 
@@ -101,7 +123,7 @@ export default function RealtorPartnerEngine() {
     if(!source)return
     const group=(window.prompt('Secondary classification: Bus, BU, or Prog','Prog')||'').trim()
     if(!['Bus','BU','Prog'].includes(group))return
-    const row:Secondary={id:newId(),group:group as Secondary['group'],name:source.name,company:source.company||'',phone:source.phone,email:source.email,count:source.production,notes:source.notes,lastTouch:'',nextAction:''}
+    const row:Secondary={id:newId(),group:group as Secondary['group'],name:source.name,company:source.company||'',phone:source.phone,email:source.email,count:source.production,notes:source.notes,callNotes:source.callNotes||'',lastTouch:'',nextAction:''}
     setData(d=>({...d,prospects:d.prospects.filter(p=>p.id!==id),secondary:[...d.secondary,row]}))
     setView('secondary')
   }
@@ -111,7 +133,7 @@ export default function RealtorPartnerEngine() {
     if(!source)return
     const tier=(window.prompt('Primary tier: A, B, or C','C')||'').trim().toUpperCase()
     if(!['A','B','C'].includes(tier))return
-    const row:Primary={id:newId(),tier:tier as Primary['tier'],name:source.name,company:source.company||'',phone:source.phone,email:source.email,birthday:'',tie:source.group,families:source.count,notes:source.notes,lastTouch:source.lastTouch,nextAction:source.nextAction}
+    const row:Primary={id:newId(),tier:tier as Primary['tier'],name:source.name,company:source.company||'',phone:source.phone,email:source.email,birthday:'',tie:source.group,families:source.count,notes:source.notes,callNotes:source.callNotes||'',lastTouch:source.lastTouch,nextAction:source.nextAction}
     setData(d=>({...d,secondary:d.secondary.filter(p=>p.id!==id),primary:[...d.primary,row]}))
     setView('primary')
   }
@@ -119,18 +141,62 @@ export default function RealtorPartnerEngine() {
   function demoteSecondary(id:string){
     const source=data.primary.find(p=>p.id===id)
     if(!source)return
-    const row:Secondary={id:newId(),group:'BU',name:source.name,company:source.company||'',phone:source.phone,email:source.email,count:source.families,notes:source.notes||'Moved from Primary',lastTouch:source.lastTouch,nextAction:source.nextAction}
+    const row:Secondary={id:newId(),group:'BU',name:source.name,company:source.company||'',phone:source.phone,email:source.email,count:source.families,notes:source.notes||'Moved from Primary',callNotes:source.callNotes||'',lastTouch:source.lastTouch,nextAction:source.nextAction}
     setData(d=>({...d,primary:d.primary.filter(p=>p.id!==id),secondary:[...d.secondary,row]}))
     setView('secondary')
   }
 
+  function downloadProspectSample(){
+    const sample=[
+      ['name','company','phone','email','production','notes','call_notes'],
+      ['Jane Smith','Example Realty','760-555-0101','jane@example.com','14','Goal: grow VA business. Challenge: consistent lead follow-up.',''],
+      ['John Doe','Coastal Homes','858-555-0102','john@example.com','22','Focused on listings and move-up buyers.','Sent intro email; follow up next Realtor Day.'],
+    ]
+    const blob=new Blob([sample.map(row=>row.map(csvCell).join(',')).join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a')
+    a.href=url
+    a.download='realtor-prospect-import-sample.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importProspects(file:File){
+    const text=await file.text()
+    const rows=parseCsv(text)
+    if(rows.length<2)return
+    const headers=rows[0].map(normalizeHeader)
+    const pos=(...names:string[])=>headers.findIndex(h=>names.includes(h))
+    const nameI=pos('name','agent','agentname','realtor','realtorname')
+    if(nameI<0){window.alert('Import requires a Name column. Download the sample CSV for the expected format.');return}
+    const companyI=pos('company','brokerage')
+    const phoneI=pos('phone','phonenumber','mobile','cell')
+    const emailI=pos('email','emailaddress')
+    const prodI=pos('production','sides','families','familieshelped')
+    const notesI=pos('notes','relationshipnotes')
+    const callNotesI=pos('callnotes','weeklycallnotes')
+    const imported:Prospect[]=rows.slice(1).map(cols=>{
+      const read=(i:number)=>i>=0?(cols[i]||'').trim():''
+      const production=read(prodI)
+      return {
+        id:newId(),name:read(nameI),company:read(companyI),phone:read(phoneI),email:read(emailI),
+        production:production!==''&&Number.isFinite(Number(production))?Number(production):null,
+        notes:read(notesI),callNotes:read(callNotesI),stage:0,
+      }
+    }).filter(row=>row.name)
+    if(!imported.length){window.alert('No prospect rows with names were found.');return}
+    setData(d=>({...d,prospects:[...d.prospects,...imported]}))
+    setView('prospects')
+    window.alert(imported.length+' prospects imported as Not Started.')
+  }
+
   function exportCallCsv(kind:'secondary'|'primary'){
     const rows=kind==='secondary'?shownSecondary:shownPrimary
-    const headers=['Name','Company','Phone','Email','Relationship','Last Touch','Notes']
+    const headers=['Name','Company','Phone','Email','Relationship','Last Touch','Notes','Call Notes']
     const lines=[headers.map(csvCell).join(',')]
     rows.forEach((row:any)=>{
       const relationship=kind==='secondary'?row.group:row.tier
-      lines.push([row.name,row.company,row.phone,row.email,relationship,row.lastTouch,row.notes].map(csvCell).join(','))
+      lines.push([row.name,row.company,row.phone,row.email,relationship,row.lastTouch,row.notes,row.callNotes||''].map(csvCell).join(','))
     })
     const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'})
     const url=URL.createObjectURL(blob)
@@ -151,8 +217,7 @@ export default function RealtorPartnerEngine() {
         '<td>'+htmlEscape(row.phone)+'</td>'+
         '<td>'+htmlEscape(relationship)+'</td>'+
         '<td>'+htmlEscape(prettyTouchDate(row.lastTouch))+'</td>'+
-        '<td>'+htmlEscape(row.notes)+'</td>'+
-        '<td class="manual"></td>'+
+        '<td>'+htmlEscape(row.notes)+'</td>'+\n        '<td>'+htmlEscape(row.callNotes||'')+'</td>'+\n        '<td class="manual"></td>'+
       '</tr>'
     }).join('')
     const w=window.open('','_blank','width=1100,height=800')
@@ -160,7 +225,7 @@ export default function RealtorPartnerEngine() {
     w.document.write('<!doctype html><html><head><title>'+title+'</title><style>'+
       'body{font-family:Arial,sans-serif;color:#1f2937;margin:28px}h1{margin:0 0 6px;font-size:24px}.meta{color:#6b7280;font-size:12px;margin-bottom:18px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;text-align:left;padding:8px;border:1px solid #d1d5db}td{vertical-align:top;padding:9px;border:1px solid #d1d5db}.sub{font-size:10px;color:#6b7280;margin-top:2px}.manual{height:48px;min-width:180px}@media print{body{margin:.35in}button{display:none}}'+
       '</style></head><body><h1>'+title+'</h1><div class="meta">'+rows.length+' contacts · '+new Date().toLocaleDateString('en-US')+'</div>'+
-      '<table><thead><tr><th>Agent</th><th>Phone</th><th>Level</th><th>Last Touch</th><th>Notes</th><th>Call Notes</th></tr></thead><tbody>'+body+'</tbody></table>'+
+      '<table><thead><tr><th>Agent</th><th>Phone</th><th>Level</th><th>Last Touch</th><th>Notes</th><th>Call Notes</th><th>New Call Notes</th></tr></thead><tbody>'+body+'</tbody></table>'+
       '<script>window.onload=()=>window.print()<\/script></body></html>')
     w.document.close()
   }
@@ -226,20 +291,21 @@ export default function RealtorPartnerEngine() {
       </>}
 
       {view==='prospects' && <>
-        <PageHead eyebrow="Realtor Prospecting" title="Prospects" copy="Your working prospect list. Keep untouched prospects as Not Started, record contact and meeting progress, then convert qualified relationships into Secondary." action={<button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Prospect</button>} />
+        <PageHead eyebrow="Realtor Prospecting" title="Prospects" copy="Your working prospect list. Keep untouched prospects as Not Started, record contact and meeting progress, then convert qualified relationships into Secondary." action={<div className="flex flex-wrap gap-2"><label className="cursor-pointer rounded-[10px] border border-[#1f4b7a] bg-white px-4 py-3 text-sm font-bold text-[#1f4b7a]">Import Prospects<input type="file" accept=".csv,text/csv" className="hidden" onChange={e=>{const file=e.target.files?.[0];if(file)void importProspects(file);e.currentTarget.value='' }}/></label><button onClick={downloadProspectSample} className="rounded-[10px] border border-[#d8dee8] bg-white px-4 py-3 text-sm font-bold">Sample CSV</button><button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Prospect</button></div>} />
         <Toolbar>
           <input value={prospectSearch} onChange={e=>setProspectSearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search agent, company, note..." />
           <select value={prospectStage} onChange={e=>setProspectStage(e.target.value)} className={input}>
             <option value="all">All stages</option><option value="0">Not started</option><option value="1">Initial contact</option><option value="2">Meeting</option>
           </select>
         </Toolbar>
-        <Table headers={['Agent','Production','Company','Contact','Progress','Notes']} rows={shownProspects.map(a=>[
+        <Table headers={['Agent','Production','Company','Contact','Progress','Notes','Call Notes']} rows={shownProspects.map(a=>[
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'prospect',id:a.id})}/>,
           a.production??'—',
           a.company||'—',
           a.phone||'—',
           <ProgressBadge key="s" value={a.stage}/>,
-          <NotePreview key="notes" value={a.notes}/>
+          <NotePreview key="notes" value={a.notes}/>,
+          <NotePreview key="callnotes" value={a.callNotes||''}/>
         ])}/>
       </>}
 
@@ -248,13 +314,14 @@ export default function RealtorPartnerEngine() {
         <Cadence label="Relationship cadence" items={['Call semi-monthly','Meet quarterly','Book / gift annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="BUS — Business" copy="Coaching, lead strategy, business planning, growth conversations."/><ClassCard title="BU — Backup" copy="Save deals, second opinions, difficult scenarios, fast-close resource."/><ClassCard title="PROG — Program" copy="Known specialist for VA or another product niche."/></div>
         <Toolbar><input value={secondarySearch} onChange={e=>setSecondarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search secondary partners..."/><select value={secondaryGroup} onChange={e=>setSecondaryGroup(e.target.value)} className={input}><option value="all">All groups</option><option>Bus</option><option>BU</option><option>Prog</option></select><div className="ml-auto flex flex-wrap gap-2"><button onClick={()=>printCallList('secondary')} className={mini}>Print / PDF Call List</button><button onClick={()=>exportCallCsv('secondary')} className={mini}>Export Dialer CSV</button></div></Toolbar>
-        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Notes']} rows={shownSecondary.map(a=>[
+        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Notes','Call Notes']} rows={shownSecondary.map(a=>[
           <Pill key="g">{a.group}</Pill>,
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'secondary',id:a.id})}/>,
           a.phone||'—',
           a.count??'—',
           prettyTouchDate(a.lastTouch),
-          <NotePreview key="notes" value={a.notes}/>
+          <NotePreview key="notes" value={a.notes}/>,
+          <NotePreview key="callnotes" value={a.callNotes||''}/>
         ])}/>
       </>}
 
@@ -263,7 +330,7 @@ export default function RealtorPartnerEngine() {
         <Cadence label="Relationship cadence" items={['Call weekly','Meet monthly','Book / gift quarterly','Birthday annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="A — 1 transaction / month" copy="Highest-value partner tier."/><ClassCard title="B — 1 transaction / quarter" copy="Consistent producing relationship."/><ClassCard title="C — 1 transaction / year" copy="Maintain and develop the relationship."/></div>
         <Toolbar><input value={primarySearch} onChange={e=>setPrimarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search primary partners..."/><select value={primaryTier} onChange={e=>setPrimaryTier(e.target.value)} className={input}><option value="all">All tiers</option><option>A</option><option>B</option><option>C</option></select><div className="ml-auto flex flex-wrap gap-2"><button onClick={()=>printCallList('primary')} className={mini}>Print / PDF Call List</button><button onClick={()=>exportCallCsv('primary')} className={mini}>Export Dialer CSV</button></div></Toolbar>
-        <Table headers={['Tier','Agent','Contact','Birthday','Partnership Tie','Families Helped','Last Touch','Notes']} rows={shownPrimary.map(a=>[
+        <Table headers={['Tier','Agent','Contact','Birthday','Partnership Tie','Families Helped','Last Touch','Notes','Call Notes']} rows={shownPrimary.map(a=>[
           <Pill key="t">{a.tier}</Pill>,
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'primary',id:a.id})}/>,
           a.phone||'—',
@@ -271,7 +338,8 @@ export default function RealtorPartnerEngine() {
           a.tie||'—',
           a.families??'—',
           prettyTouchDate(a.lastTouch),
-          <NotePreview key="notes" value={a.notes}/>
+          <NotePreview key="notes" value={a.notes}/>,
+          <NotePreview key="callnotes" value={a.callNotes||''}/>
         ])}/>
       </>}
 
@@ -384,7 +452,8 @@ function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSec
           <DateTouchField value={draft.lastTouch||''} onChange={value=>set('lastTouch',value)}/>
         </>}
 
-        <div className="md:col-span-2"><Field label="Notes"><textarea className={input+' min-h-[120px]'} value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="Relationship notes, meeting takeaways, opportunities, follow-up ideas..."/></Field></div>
+        <div className="md:col-span-2"><Field label="Notes — Relationship Profile"><textarea className={input+' min-h-[120px]'} value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="Goals, struggles, challenges, preferences, family/business context, and anything useful for supporting this Realtor long term..."/></Field></div>
+        <div className="md:col-span-2"><Field label="Call Notes — Current / Working"><textarea className={input+' min-h-[90px]'} value={draft.callNotes||''} onChange={e=>set('callNotes',e.target.value)} placeholder="Sent lead, follow up with X, discussed listing, call next Realtor Day..."/></Field></div>
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#d8dee8] pt-4">
         <div>
@@ -404,14 +473,15 @@ function AgentModal({type,onClose,onSave}:{type:ModalType;onClose:()=>void;onSav
   const [email,setEmail]=useState('')
   const [production,setProduction]=useState('')
   const [notes,setNotes]=useState('')
+  const [callNotes,setCallNotes]=useState('')
   const [classification,setClassification]=useState(type==='secondary'?'Bus':type==='primary'?'C':'')
 
   function save(){
     if(!name.trim())return
     const count=production?Number(production):null
-    if(type==='prospect') onSave({id:newId(),name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),production:count,notes:notes.trim(),stage:0})
-    else if(type==='secondary') onSave({id:newId(),group:classification as Secondary['group'],name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),count,notes:notes.trim(),lastTouch:'',nextAction:''})
-    else onSave({id:newId(),tier:classification as Primary['tier'],name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),birthday:'',tie:'',families:count,notes:notes.trim(),lastTouch:'',nextAction:''})
+    if(type==='prospect') onSave({id:newId(),name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),production:count,notes:notes.trim(),callNotes:callNotes.trim(),stage:0})
+    else if(type==='secondary') onSave({id:newId(),group:classification as Secondary['group'],name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),count,notes:notes.trim(),callNotes:callNotes.trim(),lastTouch:'',nextAction:''})
+    else onSave({id:newId(),tier:classification as Primary['tier'],name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),birthday:'',tie:'',families:count,notes:notes.trim(),callNotes:callNotes.trim(),lastTouch:'',nextAction:''})
   }
 
   return <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#1f293733] p-12" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
@@ -424,7 +494,8 @@ function AgentModal({type,onClose,onSave}:{type:ModalType;onClose:()=>void;onSav
         <Field label="Email"><input className={input} value={email} onChange={e=>setEmail(e.target.value)}/></Field>
         <Field label="Families / Sides"><input type="number" className={input} value={production} onChange={e=>setProduction(e.target.value)}/></Field>
         {type!=='prospect'&&<Field label={type==='secondary'?'Classification':'Tier'}><select className={input} value={classification} onChange={e=>setClassification(e.target.value)}>{(type==='secondary'?['Bus','BU','Prog']:['A','B','C']).map(x=><option key={x}>{x}</option>)}</select></Field>}
-        <div className="md:col-span-2"><Field label="Notes"><textarea className={input+' min-h-[82px]'} value={notes} onChange={e=>setNotes(e.target.value)}/></Field></div>
+        <div className="md:col-span-2"><Field label="Notes — Relationship Profile"><textarea className={input+' min-h-[82px]'} value={notes} onChange={e=>setNotes(e.target.value)}/></Field></div>
+        <div className="md:col-span-2"><Field label="Call Notes"><textarea className={input+' min-h-[70px]'} value={callNotes} onChange={e=>setCallNotes(e.target.value)}/></Field></div>
       </div>
       <div className="mt-5 flex justify-end gap-2"><button onClick={onClose} className={mini}>Cancel</button><button onClick={save} className={miniPrimary}>Save Agent</button></div>
     </div>
