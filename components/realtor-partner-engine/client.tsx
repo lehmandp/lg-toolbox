@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 type View = 'dashboard' | 'prospects' | 'secondary' | 'primary' | 'process'
 type ModalType = 'prospect' | 'secondary' | 'primary'
 type Prospect = { id:string; name:string; company:string; phone:string; email:string; production:number|null; notes:string; stage:number }
-type Secondary = { id:string; group:'Bus'|'BU'|'Prog'; name:string; phone:string; email:string; count:number|null; notes:string; lastTouch:string; nextAction:string }
-type Primary = { id:string; tier:'A'|'B'|'C'; name:string; phone:string; email:string; birthday:string; tie:string; families:number|null; lastTouch:string; nextAction:string }
+type Secondary = { id:string; group:'Bus'|'BU'|'Prog'; name:string; company:string; phone:string; email:string; count:number|null; notes:string; lastTouch:string; nextAction:string }
+type Primary = { id:string; tier:'A'|'B'|'C'; name:string; company:string; phone:string; email:string; birthday:string; tie:string; families:number|null; notes:string; lastTouch:string; nextAction:string }
 type Store = { prospects:Prospect[]; secondary:Secondary[]; primary:Primary[] }
 
 const KEY = 'lg_realtor_partner_engine_v1'
@@ -17,7 +17,7 @@ const miniPrimary = 'rounded-[9px] border border-[#1f4b7a] bg-[#1f4b7a] px-3 py-
 const list = 'mt-3 list-disc space-y-2 pl-5 text-sm'
 
 function newId(){ return String(Date.now()) + '-' + Math.random().toString(36).slice(2,8) }
-function stageLabel(stage:number){ return ['Not started','Initial contact','Meeting','Follow-up','Ready for list'][stage] ?? 'Not started' }
+function stageLabel(stage:number){ return ['Not started','Initial contact','Meeting'][stage] ?? 'Not started' }
 
 export default function RealtorPartnerEngine() {
   const [view,setView] = useState<View>('dashboard')
@@ -69,12 +69,24 @@ export default function RealtorPartnerEngine() {
     setData(d=>({...d,prospects:d.prospects.map(p=>p.id===id?{...p,stage}:p)}))
   }
 
+  function updateProspect(id:string,patch:Partial<Prospect>){
+    setData(d=>({...d,prospects:d.prospects.map(p=>p.id===id?{...p,...patch}:p)}))
+  }
+
+  function updateSecondary(id:string,patch:Partial<Secondary>){
+    setData(d=>({...d,secondary:d.secondary.map(p=>p.id===id?{...p,...patch}:p)}))
+  }
+
+  function updatePrimary(id:string,patch:Partial<Primary>){
+    setData(d=>({...d,primary:d.primary.map(p=>p.id===id?{...p,...patch}:p)}))
+  }
+
   function promoteSecondary(id:string){
     const source=data.prospects.find(p=>p.id===id)
     if(!source)return
     const group=(window.prompt('Secondary classification: Bus, BU, or Prog','Prog')||'').trim()
     if(!['Bus','BU','Prog'].includes(group))return
-    const row:Secondary={id:newId(),group:group as Secondary['group'],name:source.name,phone:source.phone,email:source.email,count:source.production,notes:source.notes,lastTouch:'',nextAction:''}
+    const row:Secondary={id:newId(),group:group as Secondary['group'],name:source.name,company:source.company||'',phone:source.phone,email:source.email,count:source.production,notes:source.notes,lastTouch:'',nextAction:''}
     setData(d=>({...d,prospects:d.prospects.filter(p=>p.id!==id),secondary:[...d.secondary,row]}))
     setView('secondary')
   }
@@ -84,7 +96,7 @@ export default function RealtorPartnerEngine() {
     if(!source)return
     const tier=(window.prompt('Primary tier: A, B, or C','C')||'').trim().toUpperCase()
     if(!['A','B','C'].includes(tier))return
-    const row:Primary={id:newId(),tier:tier as Primary['tier'],name:source.name,phone:source.phone,email:source.email,birthday:'',tie:source.group,families:source.count,lastTouch:source.lastTouch,nextAction:source.nextAction}
+    const row:Primary={id:newId(),tier:tier as Primary['tier'],name:source.name,company:source.company||'',phone:source.phone,email:source.email,birthday:'',tie:source.group,families:source.count,notes:source.notes,lastTouch:source.lastTouch,nextAction:source.nextAction}
     setData(d=>({...d,secondary:d.secondary.filter(p=>p.id!==id),primary:[...d.primary,row]}))
     setView('primary')
   }
@@ -92,7 +104,7 @@ export default function RealtorPartnerEngine() {
   function demoteSecondary(id:string){
     const source=data.primary.find(p=>p.id===id)
     if(!source)return
-    const row:Secondary={id:newId(),group:'BU',name:source.name,phone:source.phone,email:source.email,count:source.families,notes:'Moved from Primary',lastTouch:source.lastTouch,nextAction:source.nextAction}
+    const row:Secondary={id:newId(),group:'BU',name:source.name,company:source.company||'',phone:source.phone,email:source.email,count:source.families,notes:source.notes||'Moved from Primary',lastTouch:source.lastTouch,nextAction:source.nextAction}
     setData(d=>({...d,primary:d.primary.filter(p=>p.id!==id),secondary:[...d.secondary,row]}))
     setView('secondary')
   }
@@ -158,35 +170,60 @@ export default function RealtorPartnerEngine() {
       </>}
 
       {view==='prospects' && <>
-        <PageHead eyebrow="4-Step Realtor Prospecting" title="Prospects" copy="Your active target list. Progress each relationship through initial contact, meeting, solution follow-up, and placement into the relationship system." action={<button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Prospect</button>} />
+        <PageHead eyebrow="4-Step Realtor Prospecting" title="Prospects" copy="Your working prospect list. Keep untouched prospects as Not Started, record contact and meeting progress, then convert qualified relationships into Secondary." action={<button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Prospect</button>} />
         <Toolbar>
           <input value={prospectSearch} onChange={e=>setProspectSearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search agent, company, note..." />
           <select value={prospectStage} onChange={e=>setProspectStage(e.target.value)} className={input}>
-            <option value="all">All stages</option><option value="0">Not started</option><option value="1">Initial contact</option><option value="2">Meeting</option><option value="3">Follow-up</option><option value="4">Ready for list</option>
+            <option value="all">All stages</option><option value="0">Not started</option><option value="1">Initial contact</option><option value="2">Meeting</option>
           </select>
         </Toolbar>
-        <Table headers={['Agent','Production','Company','Contact','4-Step Progress','Notes','Action']} rows={shownProspects.map(a=>[
-          <Name key="n" name={a.name} sub={a.email}/>, a.production??'—', a.company||'—', a.phone||'—', <Stage key="s" value={a.stage} onSet={n=>setStage(a.id,n)}/>, a.notes||'—', <button key="a" onClick={()=>promoteSecondary(a.id)} className={miniPrimary}>→ Secondary</button>
+        <Table headers={['Agent','Production','Company','Phone','Email','Progress','Notes']} rows={shownProspects.map(a=>[
+          <InlineText key="n" value={a.name} onChange={value=>updateProspect(a.id,{name:value})}/>,
+          <InlineNumber key="p" value={a.production} onChange={value=>updateProspect(a.id,{production:value})}/>,
+          <InlineText key="c" value={a.company} onChange={value=>updateProspect(a.id,{company:value})}/>,
+          <InlineText key="ph" value={a.phone} onChange={value=>updateProspect(a.id,{phone:value})}/>,
+          <InlineText key="e" value={a.email} onChange={value=>updateProspect(a.id,{email:value})}/>,
+          <ProspectProgress key="s" value={a.stage} onSet={n=>setStage(a.id,n)} onConvert={()=>promoteSecondary(a.id)}/>,
+          <InlineNotes key="notes" value={a.notes} onChange={value=>updateProspect(a.id,{notes:value})}/>
         ])}/>
       </>}
 
       {view==='secondary' && <>
-        <PageHead eyebrow="Roster Position" title="Secondary Relationships" copy="Agents who use you as a business resource, backup lender, or product/program specialist." action={<button onClick={()=>setModal('secondary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Secondary</button>} />
+        <PageHead eyebrow="Roster Position" title="Secondary Relationships" copy="Working Realtor relationships where you have earned a place on the roster. Keep the sheet current, stay useful, and graduate relationships to Primary when referral activity grows." action={<button onClick={()=>setModal('secondary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Secondary</button>} />
         <Cadence label="Relationship cadence" items={['Call semi-monthly','Meet quarterly','Book / gift annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="BUS — Business" copy="Coaching, lead strategy, business planning, growth conversations."/><ClassCard title="BU — Backup" copy="Save deals, second opinions, difficult scenarios, fast-close resource."/><ClassCard title="PROG — Program" copy="Known specialist for VA or another product niche."/></div>
         <Toolbar><input value={secondarySearch} onChange={e=>setSecondarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search secondary partners..."/><select value={secondaryGroup} onChange={e=>setSecondaryGroup(e.target.value)} className={input}><option value="all">All groups</option><option>Bus</option><option>BU</option><option>Prog</option></select></Toolbar>
-        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Next Action','Notes','']} rows={shownSecondary.map(a=>[
-          <Pill key="g">{a.group}</Pill>, <Name key="n" name={a.name} sub={a.email}/>, a.phone||'—', a.count??'—', a.lastTouch||'—', a.nextAction||'Set next touch', a.notes||'—', <button key="a" onClick={()=>promotePrimary(a.id)} className={miniPrimary}>→ Primary</button>
+        <Table headers={['Group','Agent','Company','Phone','Email','Families / Sides','Last Touch','Next Action','Notes','Graduation']} rows={shownSecondary.map(a=>[
+          <InlineSelect key="g" value={a.group} options={['Bus','BU','Prog']} onChange={value=>updateSecondary(a.id,{group:value as Secondary['group']})}/>,
+          <InlineText key="n" value={a.name} onChange={value=>updateSecondary(a.id,{name:value})}/>,
+          <InlineText key="c" value={a.company||''} onChange={value=>updateSecondary(a.id,{company:value})}/>,
+          <InlineText key="ph" value={a.phone} onChange={value=>updateSecondary(a.id,{phone:value})}/>,
+          <InlineText key="e" value={a.email} onChange={value=>updateSecondary(a.id,{email:value})}/>,
+          <InlineNumber key="ct" value={a.count} onChange={value=>updateSecondary(a.id,{count:value})}/>,
+          <InlineText key="lt" value={a.lastTouch} placeholder="Last touch" onChange={value=>updateSecondary(a.id,{lastTouch:value})}/>,
+          <InlineText key="na" value={a.nextAction} placeholder="Next action" onChange={value=>updateSecondary(a.id,{nextAction:value})}/>,
+          <InlineNotes key="notes" value={a.notes} onChange={value=>updateSecondary(a.id,{notes:value})}/>,
+          <button key="a" onClick={()=>promotePrimary(a.id)} className={miniPrimary}>Graduate → Primary</button>
         ])}/>
       </>}
 
       {view==='primary' && <>
-        <PageHead eyebrow="Core Referral Partners" title="Primary Relationships" copy="Agents who use you as a primary lender. Tier by productivity and manage with a higher-touch relationship cadence." action={<button onClick={()=>setModal('primary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Primary</button>} />
+        <PageHead eyebrow="Core Referral Partners" title="Primary Relationships" copy="Core Realtor accounts. Keep relationship details, referral activity, and next actions current; tier A/B/C by actual production." action={<button onClick={()=>setModal('primary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Primary</button>} />
         <Cadence label="Relationship cadence" items={['Call weekly','Meet monthly','Book / gift quarterly','Birthday annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="A — 1 transaction / month" copy="Highest-value partner tier."/><ClassCard title="B — 1 transaction / quarter" copy="Consistent producing relationship."/><ClassCard title="C — 1 transaction / year" copy="Maintain and develop the relationship."/></div>
         <Toolbar><input value={primarySearch} onChange={e=>setPrimarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search primary partners..."/><select value={primaryTier} onChange={e=>setPrimaryTier(e.target.value)} className={input}><option value="all">All tiers</option><option>A</option><option>B</option><option>C</option></select></Toolbar>
-        <Table headers={['Tier','Agent','Contact','Birthday','Partnership Tie','Families Helped','Last Touch','Next Action','']} rows={shownPrimary.map(a=>[
-          <Pill key="t">{a.tier}</Pill>, <Name key="n" name={a.name} sub={a.email}/>, a.phone||'—', a.birthday||'—', a.tie||'—', a.families??'—', a.lastTouch||'—', a.nextAction||'Set next touch', <button key="a" onClick={()=>demoteSecondary(a.id)} className={mini}>← Secondary</button>
+        <Table headers={['Tier','Agent','Company','Phone','Email','Birthday','Partnership Tie','Families Helped','Last Touch','Next Action','Notes']} rows={shownPrimary.map(a=>[
+          <InlineSelect key="t" value={a.tier} options={['A','B','C']} onChange={value=>updatePrimary(a.id,{tier:value as Primary['tier']})}/>,
+          <InlineText key="n" value={a.name} onChange={value=>updatePrimary(a.id,{name:value})}/>,
+          <InlineText key="c" value={a.company||''} onChange={value=>updatePrimary(a.id,{company:value})}/>,
+          <InlineText key="ph" value={a.phone} onChange={value=>updatePrimary(a.id,{phone:value})}/>,
+          <InlineText key="e" value={a.email} onChange={value=>updatePrimary(a.id,{email:value})}/>,
+          <InlineText key="b" value={a.birthday} placeholder="Birthday" onChange={value=>updatePrimary(a.id,{birthday:value})}/>,
+          <InlineText key="tie" value={a.tie} placeholder="Partnership tie" onChange={value=>updatePrimary(a.id,{tie:value})}/>,
+          <InlineNumber key="f" value={a.families} onChange={value=>updatePrimary(a.id,{families:value})}/>,
+          <InlineText key="lt" value={a.lastTouch} placeholder="Last touch" onChange={value=>updatePrimary(a.id,{lastTouch:value})}/>,
+          <InlineText key="na" value={a.nextAction} placeholder="Next action" onChange={value=>updatePrimary(a.id,{nextAction:value})}/>,
+          <InlineNotes key="notes" value={a.notes||''} onChange={value=>updatePrimary(a.id,{notes:value})}/>
         ])}/>
       </>}
 
@@ -199,7 +236,7 @@ export default function RealtorPartnerEngine() {
         setView(destination==='prospect'?'prospects':destination)
       }}/>}
 
-      <p className="mt-5 text-xs text-[#6b7280]">Agent tracking data is saved in this browser. Export periodically if you want a portable backup.</p>
+      <p className="mt-5 text-xs text-[#6b7280]">Realtor relationship data is saved automatically in this browser. Use Export periodically for a portable backup.</p>
     </main>
   )
 }
@@ -263,8 +300,8 @@ function AgentModal({type,onClose,onSave}:{type:ModalType;onClose:()=>void;onSav
     if(!name.trim())return
     const count=production?Number(production):null
     if(type==='prospect') onSave({id:newId(),name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),production:count,notes:notes.trim(),stage:0})
-    else if(type==='secondary') onSave({id:newId(),group:classification as Secondary['group'],name:name.trim(),phone:phone.trim(),email:email.trim(),count,notes:notes.trim(),lastTouch:'',nextAction:''})
-    else onSave({id:newId(),tier:classification as Primary['tier'],name:name.trim(),phone:phone.trim(),email:email.trim(),birthday:'',tie:'',families:count,lastTouch:'',nextAction:''})
+    else if(type==='secondary') onSave({id:newId(),group:classification as Secondary['group'],name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),count,notes:notes.trim(),lastTouch:'',nextAction:''})
+    else onSave({id:newId(),tier:classification as Primary['tier'],name:name.trim(),company:company.trim(),phone:phone.trim(),email:email.trim(),birthday:'',tie:'',families:count,notes:notes.trim(),lastTouch:'',nextAction:''})
   }
 
   return <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#1f293733] p-12" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
@@ -289,7 +326,11 @@ function Metric({label,value,sub}:{label:string;value:string|number;sub:string})
 function Flow({n,title,copy}:{n:string;title:string;copy:string}){return <div className="rounded-[14px] border border-[#d8dee8] bg-white p-4"><div className="text-[10px] font-extrabold tracking-[.08em] text-[#6b7280]">{n}</div><div className="mt-1 text-base font-black">{title}</div><p className="mt-1 text-xs text-[#6b7280]">{copy}</p></div>}
 function Toolbar({children}:{children:ReactNode}){return <div className="flex flex-wrap gap-2 rounded-t-[14px] border border-b-0 border-[#d8dee8] bg-white p-3">{children}</div>}
 function Table({headers,rows}:{headers:string[];rows:ReactNode[][]}){return <div className="overflow-auto rounded-b-[14px] border border-[#d8dee8] bg-white"><table className="w-full min-w-[960px] border-collapse"><thead><tr>{headers.map((h,i)=><th key={h+i} className="border-b border-[#d8dee8] bg-[#f7f9fb] px-2.5 py-3 text-left text-[10px] font-extrabold uppercase tracking-[.07em] text-[#6b7280]">{h}</th>)}</tr></thead><tbody>{rows.length===0?<tr><td colSpan={headers.length} className="p-4 text-sm text-[#6b7280]">No matching records.</td></tr>:rows.map((row,i)=><tr key={i} className="hover:bg-[#fbfcfd]">{row.map((cell,j)=><td key={j} className="border-b border-[#e9edf2] px-2.5 py-3 align-middle text-sm">{cell}</td>)}</tr>)}</tbody></table></div>}
-function Stage({value,onSet}:{value:number;onSet:(n:number)=>void}){return <div><div className="flex gap-1">{[1,2,3,4].map(n=><button key={n} onClick={()=>onSet(n)} className={'h-[26px] min-w-[27px] rounded-[8px] border text-[10px] font-extrabold '+(n<=value?'border-[#1f4b7a] bg-[#1f4b7a] text-white':'border-[#d8dee8] bg-white text-[#6b7280]')}>{n}</button>)}</div><div className="mt-1 text-[11px] text-[#6b7280]">{stageLabel(value)}</div></div>}
+function ProspectProgress({value,onSet,onConvert}:{value:number;onSet:(n:number)=>void;onConvert:()=>void}){return <div className="min-w-[230px]"><div className="flex flex-wrap gap-1"><button onClick={()=>onSet(value===1?0:1)} className={'rounded-[8px] border px-2 py-1.5 text-[10px] font-extrabold '+(value>=1?'border-[#1f4b7a] bg-[#1f4b7a] text-white':'border-[#d8dee8] bg-white text-[#6b7280]')}>1 · Initial Contact</button><button onClick={()=>onSet(value===2?1:2)} className={'rounded-[8px] border px-2 py-1.5 text-[10px] font-extrabold '+(value>=2?'border-[#1f4b7a] bg-[#1f4b7a] text-white':'border-[#d8dee8] bg-white text-[#6b7280]')}>2 · Meeting</button><button onClick={onConvert} className="rounded-[8px] border border-[#1f4b7a] bg-white px-2 py-1.5 text-[10px] font-extrabold text-[#1f4b7a]">3 · Convert →</button></div><div className="mt-1 text-[11px] text-[#6b7280]">{stageLabel(value)}</div></div>}
+function InlineText({value,onChange,placeholder}:{value:string;onChange:(value:string)=>void;placeholder?:string}){return <input value={value||''} placeholder={placeholder||'—'} onChange={e=>onChange(e.target.value)} className="w-full min-w-[105px] rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-sm outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white"/>}
+function InlineNumber({value,onChange}:{value:number|null;onChange:(value:number|null)=>void}){return <input type="number" min="0" value={value??''} placeholder="—" onChange={e=>onChange(e.target.value===''?null:Number(e.target.value))} className="w-[82px] rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-sm outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white"/>}
+function InlineSelect({value,options,onChange}:{value:string;options:string[];onChange:(value:string)=>void}){return <select value={value} onChange={e=>onChange(e.target.value)} className="rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-xs font-extrabold outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white">{options.map(x=><option key={x}>{x}</option>)}</select>}
+function InlineNotes({value,onChange}:{value:string;onChange:(value:string)=>void}){return <textarea value={value||''} placeholder="Add note..." onChange={e=>onChange(e.target.value)} rows={2} className="min-w-[190px] resize-y rounded-[7px] border border-transparent bg-transparent px-2 py-1.5 text-xs leading-5 outline-none hover:border-[#d8dee8] focus:border-[#1f4b7a] focus:bg-white"/>}
 function Name({name,sub}:{name:string;sub:string}){return <div><div className="font-extrabold">{name}</div><div className="text-[11px] text-[#6b7280]">{sub}</div></div>}
 function Pill({children}:{children:ReactNode}){return <span className="rounded-full border border-[#bfd0df] bg-[#eef4fa] px-2 py-1 text-[10px] font-extrabold text-[#1f4b7a]">{children}</span>}
 function Cadence({label,items}:{label:string;items:string[]}){return <div className="mb-4 grid overflow-hidden rounded-[14px] border border-[#bfd0df] bg-[#f7fbff] md:grid-cols-[180px_1fr]"><div className="border-b border-[#bfd0df] p-4 font-black md:border-b-0 md:border-r">{label}</div><div className="flex flex-wrap gap-5 p-4">{items.map(x=><span key={x} className="text-xs">{x}</span>)}</div></div>}
