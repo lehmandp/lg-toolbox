@@ -217,7 +217,9 @@ export default function RealtorPartnerEngine() {
         '<td>'+htmlEscape(row.phone)+'</td>'+
         '<td>'+htmlEscape(relationship)+'</td>'+
         '<td>'+htmlEscape(prettyTouchDate(row.lastTouch))+'</td>'+
-        '<td>'+htmlEscape(row.notes)+'</td>'+\n        '<td>'+htmlEscape(row.callNotes||'')+'</td>'+\n        '<td class="manual"></td>'+
+        '<td>'+htmlEscape(row.notes)+'</td>'+
+        '<td>'+htmlEscape(row.callNotes||'')+'</td>'+
+        '<td class="manual"></td>'+
       '</tr>'
     }).join('')
     const w=window.open('','_blank','width=1100,height=800')
