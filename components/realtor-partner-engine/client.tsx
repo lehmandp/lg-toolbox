@@ -19,6 +19,19 @@ const list = 'mt-3 list-disc space-y-2 pl-5 text-sm'
 
 function newId(){ return String(Date.now()) + '-' + Math.random().toString(36).slice(2,8) }
 function stageLabel(stage:number){ return ['Not started','Initial contact','Meeting'][stage] ?? 'Not started' }
+function todayKey(){ return new Date().toISOString().slice(0,10) }
+function prettyTouchDate(value:string){
+  if(!value)return '—'
+  const d=new Date(value+'T12:00:00')
+  return Number.isNaN(d.getTime())?value:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+}
+function csvCell(value:unknown){
+  const text=String(value??'')
+  return '"'+text.replace(/"/g,'""')+'"'
+}
+function htmlEscape(value:unknown){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]||ch))
+}
 
 export default function RealtorPartnerEngine() {
   const [view,setView] = useState<View>('dashboard')
@@ -111,6 +124,47 @@ export default function RealtorPartnerEngine() {
     setView('secondary')
   }
 
+  function exportCallCsv(kind:'secondary'|'primary'){
+    const rows=kind==='secondary'?shownSecondary:shownPrimary
+    const headers=['Name','Company','Phone','Email','Relationship','Last Touch','Notes']
+    const lines=[headers.map(csvCell).join(',')]
+    rows.forEach((row:any)=>{
+      const relationship=kind==='secondary'?row.group:row.tier
+      lines.push([row.name,row.company,row.phone,row.email,relationship,row.lastTouch,row.notes].map(csvCell).join(','))
+    })
+    const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a')
+    a.href=url
+    a.download='realtor-'+kind+'-call-list.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function printCallList(kind:'secondary'|'primary'){
+    const rows=kind==='secondary'?shownSecondary:shownPrimary
+    const title=kind==='secondary'?'Secondary Realtor Call List':'Primary Realtor Call List'
+    const body=rows.map((row:any)=>{
+      const relationship=kind==='secondary'?row.group:row.tier
+      return '<tr>'+
+        '<td><strong>'+htmlEscape(row.name)+'</strong><div class="sub">'+htmlEscape(row.company)+'</div></td>'+
+        '<td>'+htmlEscape(row.phone)+'</td>'+
+        '<td>'+htmlEscape(relationship)+'</td>'+
+        '<td>'+htmlEscape(prettyTouchDate(row.lastTouch))+'</td>'+
+        '<td>'+htmlEscape(row.notes)+'</td>'+
+        '<td class="manual"></td>'+
+      '</tr>'
+    }).join('')
+    const w=window.open('','_blank','width=1100,height=800')
+    if(!w)return
+    w.document.write('<!doctype html><html><head><title>'+title+'</title><style>'+
+      'body{font-family:Arial,sans-serif;color:#1f2937;margin:28px}h1{margin:0 0 6px;font-size:24px}.meta{color:#6b7280;font-size:12px;margin-bottom:18px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f3f4f6;text-align:left;padding:8px;border:1px solid #d1d5db}td{vertical-align:top;padding:9px;border:1px solid #d1d5db}.sub{font-size:10px;color:#6b7280;margin-top:2px}.manual{height:48px;min-width:180px}@media print{body{margin:.35in}button{display:none}}'+
+      '</style></head><body><h1>'+title+'</h1><div class="meta">'+rows.length+' contacts · '+new Date().toLocaleDateString('en-US')+'</div>'+
+      '<table><thead><tr><th>Agent</th><th>Phone</th><th>Level</th><th>Last Touch</th><th>Notes</th><th>Call Notes</th></tr></thead><tbody>'+body+'</tbody></table>'+
+      '<script>window.onload=()=>window.print()<\/script></body></html>')
+    w.document.close()
+  }
+
   function exportData(){
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'})
     const url=URL.createObjectURL(blob)
@@ -193,32 +247,30 @@ export default function RealtorPartnerEngine() {
         <PageHead eyebrow="Roster Position" title="Secondary Relationships" copy="Working Realtor relationships where you have earned a place on the roster. Keep the sheet current, stay useful, and graduate relationships to Primary when referral activity grows." action={<button onClick={()=>setModal('secondary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Secondary</button>} />
         <Cadence label="Relationship cadence" items={['Call semi-monthly','Meet quarterly','Book / gift annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="BUS — Business" copy="Coaching, lead strategy, business planning, growth conversations."/><ClassCard title="BU — Backup" copy="Save deals, second opinions, difficult scenarios, fast-close resource."/><ClassCard title="PROG — Program" copy="Known specialist for VA or another product niche."/></div>
-        <Toolbar><input value={secondarySearch} onChange={e=>setSecondarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search secondary partners..."/><select value={secondaryGroup} onChange={e=>setSecondaryGroup(e.target.value)} className={input}><option value="all">All groups</option><option>Bus</option><option>BU</option><option>Prog</option></select></Toolbar>
-        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Next Action','Notes']} rows={shownSecondary.map(a=>[
+        <Toolbar><input value={secondarySearch} onChange={e=>setSecondarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search secondary partners..."/><select value={secondaryGroup} onChange={e=>setSecondaryGroup(e.target.value)} className={input}><option value="all">All groups</option><option>Bus</option><option>BU</option><option>Prog</option></select><div className="ml-auto flex flex-wrap gap-2"><button onClick={()=>printCallList('secondary')} className={mini}>Print / PDF Call List</button><button onClick={()=>exportCallCsv('secondary')} className={mini}>Export Dialer CSV</button></div></Toolbar>
+        <Table headers={['Group','Agent','Contact','Families / Sides','Last Touch','Notes']} rows={shownSecondary.map(a=>[
           <Pill key="g">{a.group}</Pill>,
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'secondary',id:a.id})}/>,
           a.phone||'—',
           a.count??'—',
-          a.lastTouch||'—',
-          a.nextAction||'Set next touch',
+          prettyTouchDate(a.lastTouch),
           <NotePreview key="notes" value={a.notes}/>
         ])}/>
       </>}
 
       {view==='primary' && <>
-        <PageHead eyebrow="Core Referral Partners" title="Primary Relationships" copy="Core Realtor accounts. Keep relationship details, referral activity, and next actions current; tier A/B/C by actual production." action={<button onClick={()=>setModal('primary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Primary</button>} />
+        <PageHead eyebrow="Core Referral Partners" title="Primary Relationships" copy="Core Realtor accounts. Keep relationship details, referral activity, notes, and last-touch dates current; tier A/B/C by actual production." action={<button onClick={()=>setModal('primary')} className="rounded-[10px] bg-[#1f4b7a] px-4 py-3 text-sm font-bold text-white">+ Add Primary</button>} />
         <Cadence label="Relationship cadence" items={['Call weekly','Meet monthly','Book / gift quarterly','Birthday annually']} />
         <div className="mb-4 grid gap-3 md:grid-cols-3"><ClassCard title="A — 1 transaction / month" copy="Highest-value partner tier."/><ClassCard title="B — 1 transaction / quarter" copy="Consistent producing relationship."/><ClassCard title="C — 1 transaction / year" copy="Maintain and develop the relationship."/></div>
-        <Toolbar><input value={primarySearch} onChange={e=>setPrimarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search primary partners..."/><select value={primaryTier} onChange={e=>setPrimaryTier(e.target.value)} className={input}><option value="all">All tiers</option><option>A</option><option>B</option><option>C</option></select></Toolbar>
-        <Table headers={['Tier','Agent','Contact','Birthday','Partnership Tie','Families Helped','Last Touch','Next Action','Notes']} rows={shownPrimary.map(a=>[
+        <Toolbar><input value={primarySearch} onChange={e=>setPrimarySearch(e.target.value)} className={input+' min-w-[250px]'} placeholder="Search primary partners..."/><select value={primaryTier} onChange={e=>setPrimaryTier(e.target.value)} className={input}><option value="all">All tiers</option><option>A</option><option>B</option><option>C</option></select><div className="ml-auto flex flex-wrap gap-2"><button onClick={()=>printCallList('primary')} className={mini}>Print / PDF Call List</button><button onClick={()=>exportCallCsv('primary')} className={mini}>Export Dialer CSV</button></div></Toolbar>
+        <Table headers={['Tier','Agent','Contact','Birthday','Partnership Tie','Families Helped','Last Touch','Notes']} rows={shownPrimary.map(a=>[
           <Pill key="t">{a.tier}</Pill>,
           <RecordName key="n" name={a.name} sub={a.email} onClick={()=>setEditing({type:'primary',id:a.id})}/>,
           a.phone||'—',
           a.birthday||'—',
           a.tie||'—',
           a.families??'—',
-          a.lastTouch||'—',
-          a.nextAction||'Set next touch',
+          prettyTouchDate(a.lastTouch),
           <NotePreview key="notes" value={a.notes}/>
         ])}/>
       </>}
@@ -321,8 +373,7 @@ function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSec
         {record.type==='secondary'&&<>
           <Field label="Classification"><select className={input} value={draft.group} onChange={e=>set('group',e.target.value)}><option value="Bus">Bus — Business</option><option value="BU">BU — Backup</option><option value="Prog">Prog — Program</option></select></Field>
           <Field label="Families / Sides"><input type="number" min="0" className={input} value={draft.count??''} onChange={e=>set('count',e.target.value===''?null:Number(e.target.value))}/></Field>
-          <Field label="Last Touch"><input className={input} value={draft.lastTouch||''} onChange={e=>set('lastTouch',e.target.value)} placeholder="e.g. Oct 19 — phone call"/></Field>
-          <Field label="Next Action"><input className={input} value={draft.nextAction||''} onChange={e=>set('nextAction',e.target.value)} placeholder="e.g. Call next Monday"/></Field>
+          <DateTouchField value={draft.lastTouch||''} onChange={value=>set('lastTouch',value)}/>
         </>}
 
         {record.type==='primary'&&<>
@@ -330,8 +381,7 @@ function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSec
           <Field label="Families Helped"><input type="number" min="0" className={input} value={draft.families??''} onChange={e=>set('families',e.target.value===''?null:Number(e.target.value))}/></Field>
           <Field label="Birthday"><input className={input} value={draft.birthday||''} onChange={e=>set('birthday',e.target.value)} placeholder="Birthday"/></Field>
           <Field label="Partnership Tie"><input className={input} value={draft.tie||''} onChange={e=>set('tie',e.target.value)} placeholder="Business / VA / Backup / etc."/></Field>
-          <Field label="Last Touch"><input className={input} value={draft.lastTouch||''} onChange={e=>set('lastTouch',e.target.value)} placeholder="e.g. Oct 19 — phone call"/></Field>
-          <Field label="Next Action"><input className={input} value={draft.nextAction||''} onChange={e=>set('nextAction',e.target.value)} placeholder="e.g. Lunch next week"/></Field>
+          <DateTouchField value={draft.lastTouch||''} onChange={value=>set('lastTouch',value)}/>
         </>}
 
         <div className="md:col-span-2"><Field label="Notes"><textarea className={input+' min-h-[120px]'} value={draft.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="Relationship notes, meeting takeaways, opportunities, follow-up ideas..."/></Field></div>
@@ -394,4 +444,5 @@ function Pill({children}:{children:ReactNode}){return <span className="rounded-f
 function Cadence({label,items}:{label:string;items:string[]}){return <div className="mb-4 grid overflow-hidden rounded-[14px] border border-[#bfd0df] bg-[#f7fbff] md:grid-cols-[180px_1fr]"><div className="border-b border-[#bfd0df] p-4 font-black md:border-b-0 md:border-r">{label}</div><div className="flex flex-wrap gap-5 p-4">{items.map(x=><span key={x} className="text-xs">{x}</span>)}</div></div>}
 function ClassCard({title,copy}:{title:string;copy:string}){return <div className="rounded-[14px] border border-[#d8dee8] bg-white p-4"><strong>{title}</strong><p className="mt-1 text-xs text-[#6b7280]">{copy}</p></div>}
 function ProcessCard({title,children}:{title:string;children:ReactNode}){return <section className="rounded-2xl border border-[#d8dee8] bg-white p-[18px]"><h2 className="text-lg font-extrabold">{title}</h2>{children}</section>}
+function DateTouchField({value,onChange}:{value:string;onChange:(value:string)=>void}){return <div><div className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.06em] text-[#6b7280]">Last Touch</div><div className="flex gap-2"><input type="date" className={input+' flex-1'} value={value||''} onChange={e=>onChange(e.target.value)}/><button type="button" onClick={()=>onChange(todayKey())} className={mini}>Today</button></div></div>}
 function Field({label,children}:{label:string;children:ReactNode}){return <label className="block"><span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.06em] text-[#6b7280]">{label}</span>{children}</label>}
