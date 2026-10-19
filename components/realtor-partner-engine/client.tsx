@@ -145,6 +145,14 @@ export default function RealtorPartnerEngine() {
     setData(d=>({...d,primary:d.primary.filter(p=>p.id!==id),secondary:[...d.secondary,row]}))
     setView('secondary')
   }
+  function demoteProspect(id:string){
+    const source=data.secondary.find(p=>p.id===id)
+    if(!source)return
+    const row:Prospect={id:newId(),name:source.name,company:source.company||'',phone:source.phone,email:source.email,production:source.count,notes:source.notes,callNotes:source.callNotes||'',stage:2}
+    setData(d=>({...d,secondary:d.secondary.filter(p=>p.id!==id),prospects:[...d.prospects,row]}))
+    setView('prospects')
+  }
+
 
   function downloadProspectSample(){
     const sample=[
@@ -360,6 +368,8 @@ export default function RealtorPartnerEngine() {
         }}
         onConvertProspect={id=>{setEditing(null);promoteSecondary(id)}}
         onGraduateSecondary={id=>{setEditing(null);promotePrimary(id)}}
+        onMoveSecondaryToProspect={id=>{setEditing(null);demoteProspect(id)}}
+        onMovePrimaryToSecondary={id=>{setEditing(null);demoteSecondary(id)}}
       />}
 
       {modal && <AgentModal type={modal} onClose={()=>setModal(null)} onSave={row=>{
@@ -420,7 +430,7 @@ function Process(){
   </>
 }
 
-function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSecondary}:{record:EditRecord;data:Store;onClose:()=>void;onSave:(type:ModalType,id:string,patch:Partial<Prospect>|Partial<Secondary>|Partial<Primary>)=>void;onConvertProspect:(id:string)=>void;onGraduateSecondary:(id:string)=>void}){
+function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSecondary,onMoveSecondaryToProspect,onMovePrimaryToSecondary}:{record:EditRecord;data:Store;onClose:()=>void;onSave:(type:ModalType,id:string,patch:Partial<Prospect>|Partial<Secondary>|Partial<Primary>)=>void;onConvertProspect:(id:string)=>void;onGraduateSecondary:(id:string)=>void;onMoveSecondaryToProspect:(id:string)=>void;onMovePrimaryToSecondary:(id:string)=>void}){
   const source=record.type==='prospect'?data.prospects.find(x=>x.id===record.id):record.type==='secondary'?data.secondary.find(x=>x.id===record.id):data.primary.find(x=>x.id===record.id)
   const [draft,setDraft]=useState<any>(source?{...source}:null)
   if(!source||!draft)return null
@@ -460,9 +470,13 @@ function RecordModal({record,data,onClose,onSave,onConvertProspect,onGraduateSec
         <div className="md:col-span-2"><Field label="Call Notes — Current / Working"><textarea className={input+' min-h-[90px]'} value={draft.callNotes||''} onChange={e=>set('callNotes',e.target.value)} placeholder="Sent lead, follow up with X, discussed listing, call next Realtor Day..."/></Field></div>
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#d8dee8] pt-4">
-        <div>
+        <div className="flex flex-wrap gap-2">
           {record.type==='prospect'&&<button onClick={()=>{onSave('prospect',record.id,draft);onConvertProspect(record.id)}} className={miniPrimary}>Convert → Secondary</button>}
-          {record.type==='secondary'&&<button onClick={()=>{onSave('secondary',record.id,draft);onGraduateSecondary(record.id)}} className={miniPrimary}>Graduate → Primary</button>}
+          {record.type==='secondary'&&<>
+            <button onClick={()=>{onSave('secondary',record.id,draft);onMoveSecondaryToProspect(record.id)}} className={mini}>← Move to Prospect</button>
+            <button onClick={()=>{onSave('secondary',record.id,draft);onGraduateSecondary(record.id)}} className={miniPrimary}>Graduate → Primary</button>
+          </>}
+          {record.type==='primary'&&<button onClick={()=>{onSave('primary',record.id,draft);onMovePrimaryToSecondary(record.id)}} className={mini}>← Move to Secondary</button>}
         </div>
         <div className="flex gap-2"><button onClick={onClose} className={mini}>Cancel</button><button onClick={save} className={miniPrimary}>Save Changes</button></div>
       </div>
