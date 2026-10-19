@@ -394,7 +394,7 @@ export default function RealtorPartnerEngine() {
           <Flow n="03 — PRIMARY" title="Deepen the relationship" copy="Move proven partners into higher-touch relationship management and A/B/C productivity tiers." />
         </div>
         <div className="grid gap-4 lg:grid-cols-[1.55fr_1fr]">
-          <section className="flex h-[245px] flex-col rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
+          <section className="flex h-[285px] flex-col rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
             <div className="mb-3 flex justify-between"><h2 className="text-xl font-extrabold">Prospecting Queue</h2><span className="text-[11px] text-[#6b7280]">{activeTouches} active touches</span></div>
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               {data.prospects.length===0?<p className="text-sm text-[#6b7280]">No prospects yet. Add an agent to begin.</p>:data.prospects.slice().sort((a,b)=>b.stage-a.stage).map(a=>(
@@ -402,7 +402,7 @@ export default function RealtorPartnerEngine() {
               ))}
             </div>
           </section>
-          <section className="h-[245px] rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
+          <section className="h-[285px] rounded-2xl border border-[#d8dee8] bg-white p-[18px]">
             <h2 className="mb-3 text-xl font-extrabold">Operating Rules</h2>
             <p className="text-sm">The first win is not becoming the agent&apos;s primary lender. The first win is becoming a credible <strong>secondary resource</strong> and earning opportunities over time.</p>
             <div className="my-4 rounded-[10px] bg-[#eef4fa] p-3 text-sm"><strong>Model:</strong> each developed agent relationship is worth approximately <strong>.1875 deals per month</strong>.</div>
@@ -629,7 +629,7 @@ function AgentModal({type,onClose,onSave}:{type:ModalType;onClose:()=>void;onSav
   </div>
 }
 
-function PageHead({eyebrow,title,copy,action}:{eyebrow:string;title:string;copy:string;action?:ReactNode}){return <div className="mb-[18px] flex flex-wrap items-start justify-between gap-5"><div><div className="text-xs font-extrabold uppercase tracking-[.14em] text-[#6b7280]">{eyebrow}</div><h1 className="mt-1 text-[30px]">{title}</h1><p className="mt-1 max-w-[780px] text-sm text-[#6b7280]">{copy}</p></div>{action}</div>}
+function PageHead({eyebrow,title,copy,action}:{eyebrow:string;title:string;copy:string;action?:ReactNode}){return <div className="mb-[18px] grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"><div><div className="text-xs font-extrabold uppercase tracking-[.14em] text-[#6b7280]">{eyebrow}</div><h1 className="mt-1 text-[30px]">{title}</h1><p className="mt-1 max-w-[780px] text-sm text-[#6b7280]">{copy}</p></div>{action&&<div className="flex items-center justify-start lg:justify-end">{action}</div>}</div>}
 function Metric({label,value,sub}:{label:string;value:string|number;sub:string}){return <div className="rounded-[14px] border border-[#d8dee8] bg-white p-4"><div className="text-[10px] font-extrabold uppercase tracking-[.07em] text-[#6b7280]">{label}</div><div className="mt-1 text-2xl font-extrabold">{value}</div><div className="mt-1 text-[11px] text-[#6b7280]">{sub}</div></div>}
 function Flow({n,title,copy}:{n:string;title:string;copy:string}){return <div className="rounded-[14px] border border-[#d8dee8] bg-white p-4"><div className="text-[10px] font-extrabold tracking-[.08em] text-[#6b7280]">{n}</div><div className="mt-1 text-base font-black">{title}</div><p className="mt-1 text-xs text-[#6b7280]">{copy}</p></div>}
 function Toolbar({children}:{children:ReactNode}){return <div className="flex flex-wrap gap-2 rounded-t-[14px] border border-b-0 border-[#d8dee8] bg-white p-3">{children}</div>}
