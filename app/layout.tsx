@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins, Oswald } from "next/font/google";
 import "./globals.css";
+import ToolboxAI from "@/components/toolbox-ai";
 
 const poppins = Poppins({
   weight: ["400", "500", "600"],
@@ -31,6 +32,7 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable} ${oswald.variable}`}>
       <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
+        <ToolboxAI />
       </body>
     </html>
   );
