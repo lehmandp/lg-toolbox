@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { decryptKey } from '@/lib/ai/crypto'
+import { DEFAULT_SETTINGS } from '@/components/originator-engine/storage'
 
 const playbook = `You are Toolbox AI, the practical, honest mortgage-originator business assistant embedded in LG Loan Toolbox.
 Prioritize revenue-generating outreach and meaningful conversations. Coach measurable commitments and a daily prospecting plan.
@@ -47,8 +48,10 @@ export async function POST(request:Request) {
     if(activity.error||settings.error)return NextResponse.json({error:'Originator Engine data unavailable'},{status:503})
     const totals:Record<string,number>={}
     for(const row of activity.data??[])for(const [k,v] of Object.entries(row.metrics??{}))if(typeof v==='number'&&Number.isFinite(v))totals[k]=(totals[k]??0)+v
-    const goals=Object.fromEntries(Object.entries(settings.data?.settings??{}).filter(([k,v])=>/^weekly[A-Z]/.test(k)&&typeof v==='number'))
-    contextNote='\\nREAD-ONLY ACTUAL ORIGINATOR ENGINE DATA for week starting '+start+': '+JSON.stringify({totals,goals})+'. Do not claim to write activity.'
+    const resolved={...DEFAULT_SETTINGS,...(settings.data?.settings??{})}
+    const goals=Object.fromEntries(Object.entries(resolved).filter(([k,v])=>/^weekly[A-Z]/.test(k)&&typeof v==='number'))
+    const schedule=Object.fromEntries(['mon','tue','wed','thu','fri'].map(day=>[day,{theme:resolved[(day+'Theme') as keyof typeof resolved],morning:resolved[(day+'Am') as keyof typeof resolved],afternoon:resolved[(day+'Pm') as keyof typeof resolved]}]))
+    contextNote='\\nREAD-ONLY ACTUAL ORIGINATOR ENGINE DATA for week starting '+start+': '+JSON.stringify({totals,goals,themeDays:schedule})+'. Use the configured theme days, morning and afternoon priorities in practical planning; do not invent accomplishments or claim to write activity.'
   }
   if(body.engine==='realtor'&&body.mode==='Business Advisor'){
     const obj=body.engineContext
