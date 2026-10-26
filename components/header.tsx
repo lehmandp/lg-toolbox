@@ -35,7 +35,7 @@ export default function Header({ isAdmin = false }: { isAdmin?: boolean }) {
   }
 
   const navItems = [
-    ...(user ? [{ label: 'My Toolbox', href: '/library' }, { label: 'Marketplace', href: '/marketplace' }] : []),
+    ...(user ? [{ label: 'My Toolbox', href: '/library' }, { label: 'Marketplace', href: '/marketplace' }, { label: 'Toolbox AI', href: '/toolbox-ai' }, { label: 'Settings', href: '/settings' }] : []),
     ...(isAdmin ? [{ label: 'Admin', href: '/admin' }] : []),
   ]
 
