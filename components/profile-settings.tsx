@@ -1,0 +1,27 @@
+'use client'
+import { useEffect, useState } from 'react'
+type Profile={full_name:string;company:string;nmls:string;company_nmls:string;phone:string;website:string}
+const empty:Profile={full_name:'',company:'',nmls:'',company_nmls:'',phone:'',website:''}
+export default function ProfileSettings(){
+ const [profile,setProfile]=useState<Profile>(empty)
+ const [apiKey,setApiKey]=useState('')
+ const [connected,setConnected]=useState(false)
+ const [busy,setBusy]=useState(false)
+ const [message,setMessage]=useState('')
+ useEffect(()=>{fetch('/api/ai/settings').then(r=>r.json()).then(d=>setConnected(d.connected===true)).catch(()=>{}) ;fetch('/api/profile').then(r=>r.json()).then(d=>{if(d.profile)setProfile({...empty,...d.profile})}).catch(()=>{})},[])
+ function field(k:keyof Profile,label:string,placeholder=''){return <label className="block text-xs font-medium">{label}<input className="mt-2 w-full border border-border-input bg-white p-3 text-sm" placeholder={placeholder} value={profile[k]} onChange={e=>setProfile(p=>({...p,[k]:e.target.value}))}/></label>}
+ async function saveProfile(){
+  setBusy(true);setMessage('')
+  try{const r=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(profile)});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not save');setMessage('Profile saved.')}catch(e){setMessage(e instanceof Error?e.message:'Could not save')}finally{setBusy(false)}
+ }
+ async function saveKey(){
+  setBusy(true);setMessage('')
+  try{const r=await fetch('/api/ai/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey})});const d=await r.json();if(!r.ok)throw Error(d.error||'Could not save');setConnected(true);setApiKey('');setMessage('OpenAI key saved securely.')}catch(e){setMessage(e instanceof Error?e.message:'Could not save')}finally{setBusy(false)}
+ }
+ return <div className="space-y-7">
+  <section className="border border-border bg-white p-6"><div className="eyebrow mb-2">PROFESSIONAL PROFILE</div><h2 className="mb-6">Your business identity</h2><div className="grid gap-5 sm:grid-cols-2">{field('full_name','Full name')}{field('company','Company')}{field('nmls','Individual NMLS')}{field('company_nmls','Company NMLS (optional)')}{field('phone','Business phone')}{field('website','Website')}</div><button className="btn-primary mt-6" onClick={saveProfile} disabled={busy}>Save profile</button><div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="border border-dashed border-border-input p-4"><strong className="text-sm">Professional photo</strong><p className="mt-1 text-xs text-muted-foreground">Secure photo uploads are being added next. Profile details can be saved now.</p></div><div className="border border-dashed border-border-input p-4"><strong className="text-sm">Company logo</strong><p className="mt-1 text-xs text-muted-foreground">Logo uploads will be available once storage permissions are configured.</p></div></div></section>
+  <section className="border border-border bg-white p-6"><div className="eyebrow mb-2">AI CONNECTION</div><h2 className="mb-3">Your OpenAI account</h2><p className="mb-4 text-xs text-muted-foreground">Connect an OpenAI API key (separately billed from ChatGPT). Stored encrypted on the server.</p><p className="mb-3 text-xs">Status: <strong>{connected?'Connected':'Not connected'}</strong></p><div className="flex flex-wrap gap-2"><input aria-label="OpenAI API key" type="password" autoComplete="off" placeholder="sk-..." value={apiKey} onChange={e=>setApiKey(e.target.value)} className="min-w-[200px] flex-1 border border-border-input p-3 text-sm"/><button className="btn-primary" disabled={busy||!apiKey} onClick={saveKey}>{connected?'Replace key':'Connect OpenAI'}</button></div></section>
+  <section className="border border-border bg-white p-6"><div className="eyebrow mb-2">NATIVE APP ACCESS</div><h2 className="mb-3">Connections & permissions</h2><p className="mb-5 text-xs text-muted-foreground">Originator Engine, Realtor Relationships, and Loan Pilot will each have separate read/write approval controls. These connections are not active in this beta foundation.</p>{['Originator Engine','Realtor Relationships','Loan Pilot'].map(t=><div key={t} className="flex justify-between border-t border-border py-4"><span className="text-sm">{t}</span><span className="text-xs text-muted-foreground">Coming next</span></div>)}</section>
+  {message&&<p role="status" className="text-sm text-primary">{message}</p>}
+ </div>
+}
