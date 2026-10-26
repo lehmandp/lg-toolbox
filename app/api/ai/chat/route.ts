@@ -60,7 +60,7 @@ export async function POST(request:Request) {
         const titleRes=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(6500),headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini',max_completion_tokens:40,messages:[{role:'system',content:'Create a brief specific 3-7 word topic title for this conversation. Summarize the topic, not the first words. Reply with only the title, no quotes or punctuation at the end.'},{role:'user',content:'User: '+incoming.content.slice(0,1200)+'\\nAssistant: '+reply.slice(0,700)}]})})
         if(titleRes.ok){const titleData=await titleRes.json();const candidate=titleData?.choices?.[0]?.message?.content?.trim();if(typeof candidate==='string'&&candidate.length>=4&&candidate.length<=100)conversationTitle=candidate}
       }catch{/* Keep default title if title generation is unavailable */}
-      if(conversationTitle==='New chat')conversationTitle=incoming.content.split(/\\s+/).slice(0,7).join(' ').slice(0,75)
+      if(conversationTitle==='New chat')conversationTitle=incoming.content.split(/\s+/).slice(0,7).join(' ').slice(0,75)
     }
     await db.from('ai_conversations').update({updated_at:new Date().toISOString(),title:conversationTitle}).eq('id',conversationId).eq('user_id',user.id)
     return NextResponse.json({reply})
