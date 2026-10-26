@@ -6,7 +6,6 @@ type Context='Originator Engine'|'Realtor Partner Engine'
 export default function EngineAIWidget({context}:{context:Context}){
  const mode=context==='Originator Engine'?'Originator Coach':'Business Advisor'
  const bottomRef=useRef<HTMLDivElement|null>(null)
- useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:'smooth',block:'end'})},[messages,busy,open])
  const [open,setOpen]=useState(false)
  const [connected,setConnected]=useState<boolean|null>(null)
  const [chatId,setChatId]=useState<string|null>(null)
@@ -15,6 +14,7 @@ export default function EngineAIWidget({context}:{context:Context}){
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [useData,setUseData]=useState(false)
+ useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:'smooth',block:'end'})},[messages,busy,open])
  useEffect(()=>{if(!open)return;fetch('/api/ai/settings').then(r=>r.json()).then(d=>setConnected(d.connected===true)).catch(()=>setError('Unable to check OpenAI connection'))},[open])
  async function send(){
   if(!connected||busy||!input.trim())return
