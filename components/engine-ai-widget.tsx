@@ -1,10 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 type Message={role:'user'|'assistant';content:string}
 type Context='Originator Engine'|'Realtor Partner Engine'
 export default function EngineAIWidget({context}:{context:Context}){
  const mode=context==='Originator Engine'?'Originator Coach':'Business Advisor'
+ const bottomRef=useRef<HTMLDivElement|null>(null)
+ useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:'smooth',block:'end'})},[messages,busy,open])
  const [open,setOpen]=useState(false)
  const [connected,setConnected]=useState<boolean|null>(null)
  const [chatId,setChatId]=useState<string|null>(null)
@@ -55,7 +57,7 @@ export default function EngineAIWidget({context}:{context:Context}){
    {connected===false?<div className="space-y-3 p-5 text-sm"><p>Toolbox AI is optional. Connect your OpenAI API key to use the assistant.</p><Link href="/settings" className="text-[#a26028] underline">Connect in Settings →</Link></div>:
    <><div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
     {messages.length===0&&<div><h3 className="mb-2 text-lg">How can I help?</h3><p className="mb-4 text-xs text-muted-foreground">{context==='Originator Engine'?'Ask about prospecting priorities, goals, and follow-up strategies.':'Ask about Realtor outreach, relationship building, and follow-up ideas.'}</p><p className="text-xs text-muted-foreground">Enable read-only context below if you want personalized insights. AI cannot modify your records.</p></div>}
-    {messages.map((m,i)=><div key={i} className={'whitespace-pre-wrap p-3 text-xs '+(m.role==='user'?'ml-7 bg-[#eee9e4]':'mr-4 border-l-2 border-[#a26028] bg-[#f5f5f5]')}>{m.content}</div>)}{busy&&<p className="text-xs text-muted-foreground">Thinking…</p>}
+    {messages.map((m,i)=><div key={i} className={'whitespace-pre-wrap p-3 text-xs '+(m.role==='user'?'ml-7 bg-[#eee9e4]':'mr-4 border-l-2 border-[#a26028] bg-[#f5f5f5]')}>{m.content}</div>)}{busy&&<p className="text-xs text-muted-foreground">Thinking…</p>}<div ref={bottomRef} />
    </div>
    <label className="flex items-center gap-2 border-t border-border px-4 py-2 text-xs"><input type="checkbox" checked={useData} onChange={e=>setUseData(e.target.checked)}/> Use current {context} data (read-only)</label>
    {error&&<p role="alert" className="px-4 text-xs text-red-700">{error}</p>}
