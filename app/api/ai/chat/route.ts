@@ -54,7 +54,15 @@ export async function POST(request:Request) {
     if(typeof reply!=='string')throw new Error('No response')
     const {error:saveError}=await db.from('ai_messages').insert([{user_id:user.id,conversation_id:conversationId,role:'user',content:incoming.content},{user_id:user.id,conversation_id:conversationId,role:'assistant',content:reply}])
     if(saveError)return NextResponse.json({error:'Response could not be saved; please retry carefully.'},{status:500})
-    await db.from('ai_conversations').update({updated_at:new Date().toISOString(),title:chat.title==='New chat'?incoming.content.slice(0,75):chat.title}).eq('id',conversationId).eq('user_id',user.id)
+    let conversationTitle=chat.title
+    if(chat.title==='New chat'){
+      try{
+        const titleRes=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:AbortSignal.timeout(6500),headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4.1-mini',max_completion_tokens:40,messages:[{role:'system',content:'Create a brief specific 3-7 word topic title for this conversation. Summarize the topic, not the first words. Reply with only the title, no quotes or punctuation at the end.'},{role:'user',content:'User: '+incoming.content.slice(0,1200)+'\\nAssistant: '+reply.slice(0,700)}]})})
+        if(titleRes.ok){const titleData=await titleRes.json();const candidate=titleData?.choices?.[0]?.message?.content?.trim();if(typeof candidate==='string'&&candidate.length>=4&&candidate.length<=100)conversationTitle=candidate}
+      }catch{/* Keep default title if title generation is unavailable */}
+      if(conversationTitle==='New chat')conversationTitle=incoming.content.split(/\\s+/).slice(0,7).join(' ').slice(0,75)
+    }
+    await db.from('ai_conversations').update({updated_at:new Date().toISOString(),title:conversationTitle}).eq('id',conversationId).eq('user_id',user.id)
     return NextResponse.json({reply})
   }catch{return NextResponse.json({error:'OpenAI could not complete the request'},{status:502})}
   finally{clearTimeout(timeout)}
