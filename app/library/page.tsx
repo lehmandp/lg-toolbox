@@ -55,6 +55,7 @@ export default async function LibraryPage() {
         </section>
 
         <div className="hairline" />
+        <section className="grid gap-5 border border-[#d6d4d1] bg-white p-7 my-8 md:grid-cols-[1fr_auto] md:items-center"><div><div className="eyebrow mb-2">FEATURED · INCLUDED FOR EVERY USER</div><h2 className="mb-2">✦ Toolbox AI</h2><p className="max-w-xl text-sm text-muted-foreground">Your AI assistant for business coaching, marketing, lending guidelines, and smarter use of your native tools. Organize work into assistant projects.</p></div><Link className="btn-primary" href="/toolbox-ai">Open Toolbox AI →</Link></section>
 
         <section className="pt-8">
           <div className="mb-5 flex items-end justify-between gap-5">
