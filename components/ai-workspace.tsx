@@ -1,49 +1,24 @@
 'use client'
-import { useEffect, useState } from 'react'
+import {useEffect,useState} from 'react'
 import Link from 'next/link'
-type Message={role:'user'|'assistant';content:string}
-type Project={id:string;name:string;mode:string;messages:Message[]}
-const assistants=[{name:'Originator Coach',description:'Daily planning, activity and accountability',icon:'◎'},{name:'Business Advisor',description:'Production strategy and referral relationships',icon:'▤'},{name:'Marketing',description:'Campaigns, emails and outreach',icon:'✦'},{name:'Lending Guidelines',description:'Mortgage program research',icon:'▣'}]
-export default function AIWorkspace() {
- const [projects,setProjects]=useState<Project[]>([])
- const [selected,setSelected]=useState<string|null>(null)
- const [mode,setMode]=useState('Originator Coach')
- const [input,setInput]=useState('')
- const [connected,setConnected]=useState(false)
- const [busy,setBusy]=useState(false)
- const [error,setError]=useState('')
- useEffect(()=>{fetch('/api/ai/settings').then(r=>r.json()).then(x=>setConnected(x.connected===true)).catch(()=>setError('Unable to load AI settings'))},[])
- const active=projects.find(p=>p.id===selected)
- function newProject(m=mode) {
-  const name=window.prompt('Project name',m+' project')
-  if(!name?.trim())return
-  const id=crypto.randomUUID()
-  setProjects(current=>[{id,name:name.trim().slice(0,80),mode:m,messages:[]},...current])
-  setSelected(id);setMode(m);setInput('')
- }
- async function send(){
-  if(!active||!connected||!input.trim()||busy)return
-  const message=input.trim()
-  const next:Message[]=[...active.messages,{role:'user',content:message}]
-  setProjects(ps=>ps.map(p=>p.id===active.id?{...p,messages:next}:p));setInput('');setBusy(true);setError('')
-  try{
-   const res=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:active.mode==='Marketing'?'Marketing':active.mode,messages:next.slice(-16)})})
-   const data=await res.json();if(!res.ok)throw new Error(data.error||'Unable to respond')
-   setProjects(ps=>ps.map(p=>p.id===active.id?{...p,messages:[...next,{role:'assistant',content:data.reply}]}:p))
-  }catch(e){setError(e instanceof Error?e.message:'Unable to respond')}finally{setBusy(false)}
- }
- return <main className="mx-auto max-w-[1200px] px-6 py-10">
-  <div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><div className="eyebrow mb-2">FEATURED NATIVE TOOL</div><h1>Toolbox AI</h1><p className="mt-2 text-sm text-muted-foreground">Four specialties. One assistant for your mortgage business.</p></div><Link className="btn-secondary" href="/settings">AI & Profile Settings →</Link></div>
-  {!connected&&<div className="mb-5 border border-primary bg-[#eee9e4] p-4 text-sm">Connect your personal OpenAI API key in <Link href="/settings" className="font-semibold underline">Settings</Link> to begin chatting.</div>}
-  <div className="grid min-h-[610px] gap-5 lg:grid-cols-[255px_1fr]">
-   <aside className="border border-border bg-white p-4"><div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Assistant modes</div><div className="space-y-2">{assistants.map(a=><button key={a.name} onClick={()=>{setMode(a.name);setSelected(null)}} className={'w-full border p-3 text-left transition-colors '+(mode===a.name?'border-primary bg-[#eee9e4]':'border-border hover:border-primary')}><span className="mr-2 text-primary">{a.icon}</span><span className="text-sm font-medium">{a.name}</span><span className="mt-1 block text-[11px] text-muted-foreground">{a.description}</span></button>)}</div>
-   <div className="my-5 border-t border-border"/><div className="mb-3 flex items-center justify-between"><strong className="text-xs">Projects</strong><button className="text-xs text-primary" onClick={()=>newProject()}>+ New</button></div>
-   {projects.filter(p=>p.mode===mode).map(p=><button key={p.id} onClick={()=>setSelected(p.id)} className={'mb-1 block w-full truncate p-2 text-left text-xs '+(selected===p.id?'bg-[#eee9e4] text-primary':'hover:bg-[#f5f5f5]')}>▤ {p.name}</button>)}
-   <p className="mt-5 text-[10px] leading-relaxed text-muted-foreground">Beta projects are kept in this page only and disappear when reloaded. Persistent project storage is part of the next integration.</p></aside>
-   <section className="flex min-h-[590px] flex-col border border-border bg-white">
-    {!active?<div className="flex flex-1 flex-col items-center justify-center p-8 text-center"><div className="mb-4 text-4xl text-primary">✦</div><h2>{mode}</h2><p className="mt-3 max-w-md text-sm text-muted-foreground">Choose a project to resume work or create a new project. Your assistant uses the selected specialty's coaching focus.</p><button className="btn-primary mt-6" onClick={()=>newProject()}>+ Create a project</button></div>:
-    <><div className="border-b border-border px-5 py-4"><div className="eyebrow mb-1">{active.mode}</div><h3 className="text-lg">{active.name}</h3></div><div className="flex-1 space-y-4 overflow-y-auto p-5" aria-live="polite">{active.messages.length===0&&<p className="text-sm text-muted-foreground">What's the first thing we should work on?</p>}{active.messages.map((m,i)=><div key={i} className={'max-w-[92%] whitespace-pre-wrap p-4 text-sm '+(m.role==='user'?'ml-auto bg-[#eee9e4]':'border-l-2 border-primary bg-[#f5f5f5]')}>{m.content}</div>)}{busy&&<p className="text-xs text-muted-foreground">Thinking…</p>}</div>{error&&<p role="alert" className="px-5 text-xs text-red-700">{error}</p>}<form onSubmit={e=>{e.preventDefault();void send()}} className="flex gap-2 border-t border-border p-4"><input aria-label="Message" className="min-w-0 flex-1 border border-border-input px-3 py-3 text-sm" placeholder="Ask Toolbox AI…" value={input} onChange={e=>setInput(e.target.value)}/><button className="btn-primary" type="submit" disabled={!connected||busy||!input.trim()}>Send</button></form></>}
-   </section>
-  </div>
- </main>
+type Chat={id:string;title:string;mode:string;project_id:string|null;updated_at:string}
+type Project={id:string;name:string;mode:string}
+type Message={id?:string;role:'user'|'assistant';content:string}
+const modes=['Originator Coach','Business Advisor','Marketing','Lending Guidelines']
+export default function AIWorkspace(){
+ const [mode,setMode]=useState(modes[0]);const [chats,setChats]=useState<Chat[]>([]);const [projects,setProjects]=useState<Project[]>([]);const [id,setId]=useState<string|null>(null);const [messages,setMessages]=useState<Message[]>([]);const [input,setInput]=useState('');const [connected,setConnected]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('')
+ useEffect(()=>{void Promise.all([fetch('/api/ai/settings').then(r=>r.json()),fetch('/api/ai/conversations').then(r=>r.json())]).then(([s,c])=>{setConnected(s.connected===true);setChats(c.chats||[]);setProjects(c.projects||[])}).catch(()=>setError('Unable to load workspace'))},[])
+ async function openChat(chat:Chat){setId(chat.id);setMode(chat.mode);setMessages([]);setError('');try{const r=await fetch('/api/ai/conversations/'+chat.id);if(!r.ok)throw Error('Unable to load conversation');const d=await r.json();setMessages(d.messages||[])}catch(e){setError(String(e))}}
+ async function newProject(){const name=prompt('Project name');if(!name?.trim())return;const r=await fetch('/api/ai/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,mode})});const d=await r.json();if(r.ok){setProjects(v=>[d.project,...v]);setId(null);setMessages([])}else setError(d.error||'Project creation failed')}
+ async function send(){const content=input.trim();if(!content||busy||!connected)return;setBusy(true);setError('');let chatId=id;let prev=messages
+ try{if(!chatId){const r=await fetch('/api/ai/conversations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})});const d=await r.json();if(!r.ok)throw Error(d.error);chatId=d.chat.id;setId(chatId);setChats(v=>[d.chat,...v])}
+ const next:Message[]=[...prev,{role:'user',content}];setMessages(next);setInput('')
+ const r=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,messages:next.slice(-16),conversationId:chatId})});const d=await r.json();if(!r.ok)throw Error(d.error||'AI failed');setMessages([...next,{role:'assistant',content:d.reply}]);const list=await fetch('/api/ai/conversations').then(x=>x.json());setChats(list.chats||[])
+ }catch(e){setError(e instanceof Error?e.message:'Request failed')}finally{setBusy(false)}}
+ return <main className="mx-auto max-w-[1200px] px-6 py-9"><div className="mb-7 flex flex-wrap items-center justify-between gap-4"><div><div className="eyebrow mb-2">YOUR AI WORKSPACE</div><h1>Toolbox AI</h1></div><Link href="/settings" className="btn-secondary">Settings</Link></div>
+ {!connected&&<p className="mb-5 border border-primary bg-[#eee9e4] p-4 text-sm">Connect your personal OpenAI API key in <Link href="/settings" className="underline">Settings</Link>.</p>}
+ <div className="grid min-h-[650px] gap-4 lg:grid-cols-[260px_1fr]"><aside className="border border-border bg-white p-4"><button className="btn-primary mb-5 w-full justify-center" onClick={()=>{setId(null);setMessages([]);setError('')}}>+ New chat</button><div className="eyebrow mb-3">ASSISTANT</div><select aria-label="Assistant mode" value={mode} onChange={e=>{setMode(e.target.value);setId(null);setMessages([])}} className="mb-5 w-full border border-border-input p-3 text-xs">{modes.map(m=><option key={m}>{m}</option>)}</select>
+ <div className="mb-2 flex justify-between"><strong className="text-xs">Recent chats</strong></div><div className="space-y-1">{chats.filter(c=>c.mode===mode).map(c=><button key={c.id} onClick={()=>void openChat(c)} className={'block w-full truncate p-2 text-left text-xs '+(id===c.id?'bg-[#eee9e4] text-primary':'hover:bg-[#f5f5f5]')}>{c.title}</button>)}</div>
+ <div className="my-5 border-t border-border"/><div className="mb-3 flex justify-between"><strong className="text-xs">Projects</strong><button className="text-xs text-primary" onClick={()=>void newProject()}>+ New</button></div>{projects.filter(p=>p.mode===mode).map(p=><div key={p.id} className="mb-2 text-xs"><span className="font-semibold">▤ {p.name}</span>{chats.filter(c=>c.project_id===p.id).map(c=><button className="mt-1 block w-full truncate pl-4 text-left text-muted-foreground hover:text-primary" onClick={()=>void openChat(c)} key={c.id}>{c.title}</button>)}<button className="mt-1 block text-primary" onClick={async()=>{const r=await fetch('/api/ai/conversations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,project_id:p.id})});const d=await r.json();if(r.ok){setChats(v=>[d.chat,...v]);setId(d.chat.id);setMessages([])}}}>+ Chat in project</button></div>)}</aside>
+ <section className="flex min-h-[630px] flex-col border border-border bg-white"><div className="border-b border-border p-4"><span className="text-xs font-semibold text-primary">{mode}</span></div><div aria-live="polite" className="flex-1 space-y-4 overflow-y-auto p-5">{messages.length===0&&<div className="pt-20 text-center"><div className="mb-4 text-3xl text-primary">✦</div><h2>How can I help?</h2><p className="mt-2 text-sm text-muted-foreground">Start chatting now, or organize related conversations into projects when you need to.</p></div>}{messages.map((m,i)=><div key={m.id||i} className={'max-w-[90%] whitespace-pre-wrap p-4 text-sm '+(m.role==='user'?'ml-auto bg-[#eee9e4]':'border-l-2 border-primary bg-[#f5f5f5]')}>{m.content}</div>)}{busy&&<p className="text-xs text-muted-foreground">Thinking…</p>}</div>{error&&<p role="alert" className="px-5 text-xs text-red-700">{error}</p>}<form onSubmit={e=>{e.preventDefault();void send()}} className="flex gap-2 border-t border-border p-4"><input aria-label="Message" className="min-w-0 flex-1 border border-border-input p-3 text-sm" value={input} onChange={e=>setInput(e.target.value)} placeholder="Message Toolbox AI…"/><button className="btn-primary" disabled={!connected||busy||!input.trim()}>Send</button></form></section></div></main>
 }
