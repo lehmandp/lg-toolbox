@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run test:modules && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:modules": "node --test tests/module-boundaries.test.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^9.16.0",
