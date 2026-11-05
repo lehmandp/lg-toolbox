@@ -39,7 +39,11 @@ export async function PUT(request:Request){
  // Explicit version check: other-browser changes cannot be silently overwritten.
  if(existing){
    if(typeof body.expectedUpdatedAt!=='string'||body.expectedUpdatedAt!==existing.updated_at)return NextResponse.json({error:'Record has changed on another device. Refresh before saving.',conflict:true},{status:409})
-   const {data,error}=await db.from('realtor_relationships').update({...row,updated_at:new Date().toISOString()}).eq('id',existing.id).eq('user_id',user.id).eq('updated_at',existing.updated_at).select('updated_at').maybeSingle()
+   const changes={...row,updated_at:new Date().toISOString()}
+   // Do not erase legacy fields that the Toolbox interface does not edit.
+   if(row.relationship_level!=='prospect')delete (changes as Record<string,unknown>).company
+   if(row.relationship_level==='primary')delete (changes as Record<string,unknown>).notes
+   const {data,error}=await db.from('realtor_relationships').update(changes).eq('id',existing.id).eq('user_id',user.id).eq('updated_at',existing.updated_at).select('updated_at').maybeSingle()
    if(error||!data)return NextResponse.json({error:'Could not save; refresh and retry'},{status:409})
    return NextResponse.json({updated_at:data.updated_at})
  }
