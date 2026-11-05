@@ -48,7 +48,9 @@ export function useRealtorStore(){
  const saved=useRef(new Map<string,string>())
  const saveQueue=useRef<Promise<void>>(Promise.resolve())
  const modeRef=useRef<Mode>('loading')
+ const latestDataRef=useRef<Store>(EMPTY)
  useEffect(()=>{modeRef.current=mode},[mode])
+ useEffect(()=>{latestDataRef.current=data},[data])
  async function refreshCloud(){
   const rows=await loadRows()
   const store=fromRows(rows)
@@ -95,7 +97,7 @@ export function useRealtorStore(){
     }
     if(modeRef.current==='cloud'){
      // Do not discard a later edit that arrived while this snapshot was saving.
-     const unsaved=rowsFromStore(data).some(r=>saved.current.get(r.client_id)!==JSON.stringify(r))
+     const unsaved=rowsFromStore(latestDataRef.current).some(r=>saved.current.get(r.client_id)!==JSON.stringify(r))
      if(!unsaved)localStorage.removeItem(UNSYNCED)
     }
    }).catch(e=>{setError((e instanceof Error?e.message:'Cloud save failed')+' Your unsynced draft remains in this browser.');setMode('offline')})
