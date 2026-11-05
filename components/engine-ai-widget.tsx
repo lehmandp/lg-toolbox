@@ -4,7 +4,7 @@ import Link from 'next/link'
 type Message={role:'user'|'assistant';content:string}
 type Context='Originator Engine'|'Realtor Partner Engine'
 export default function EngineAIWidget({context}:{context:Context}){
- const mode=context==='Originator Engine'?'Originator Coach':'Business Advisor'
+ const mode='Auto'
  const bottomRef=useRef<HTMLDivElement|null>(null)
  const [open,setOpen]=useState(false)
  const [connected,setConnected]=useState<boolean|null>(null)
@@ -65,7 +65,7 @@ export default function EngineAIWidget({context}:{context:Context}){
    {open?'× Close AI':'✦ Toolbox AI'}
   </button>
   {open&&<aside aria-label={'Toolbox AI for '+context} className="fixed bottom-[76px] right-3 z-40 flex h-[min(630px,calc(100dvh-100px))] w-[min(420px,calc(100vw-24px))] flex-col border border-border bg-white shadow-2xl sm:right-5">
-   <div className="flex items-center justify-between bg-[#292929] px-5 py-4 text-white"><div><strong className="text-sm">✦ Toolbox AI</strong><p className="text-[11px] text-[#d2ccc7]">{context} · {mode}</p></div><button type="button" aria-label="Close assistant" className="text-xl" onClick={()=>setOpen(false)}>×</button></div>
+   <div className="flex items-center justify-between bg-[#292929] px-5 py-4 text-white"><div><strong className="text-sm">✦ Toolbox AI</strong><p className="text-[11px] text-[#d2ccc7]">{context} · Read-only module assistant</p></div><button type="button" aria-label="Close assistant" className="text-xl" onClick={()=>setOpen(false)}>×</button></div>
    {connected===false?<div className="space-y-3 p-5 text-sm"><p>Toolbox AI is optional. Connect your OpenAI API key to use the assistant.</p><Link href="/settings" className="text-[#a26028] underline">Connect in Settings →</Link></div>:
    <><div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
     {messages.length===0&&<div><h3 className="mb-2 text-lg">How can I help?</h3><p className="mb-4 text-xs text-muted-foreground">{context==='Originator Engine'?'Ask about prospecting priorities, goals, and follow-up strategies.':'Ask about Realtor outreach, relationship building, and follow-up ideas.'}</p><p className="text-xs text-muted-foreground">Enable read-only context below if you want personalized insights. AI cannot modify your records.</p></div>}
