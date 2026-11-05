@@ -31,9 +31,9 @@ export async function PUT(req: Request) {
   if (clean.review_url) {
     try {
       const url = new URL(clean.review_url)
-      if (url.protocol !== 'https:' || !url.hostname || url.username || url.password) throw new Error('Invalid URL')
+      if (!['http:','https:'].includes(url.protocol) || !url.hostname || url.username || url.password) throw new Error('Invalid URL')
     } catch {
-      return NextResponse.json({ error: 'Review link must be a valid HTTPS URL' }, { status: 400 })
+      return NextResponse.json({ error: 'Review link must be a valid http:// or https:// URL' }, { status: 400 })
     }
   }
   if (!branding.includes(body.branding_default)) return NextResponse.json({ error: 'Invalid branding preference' }, { status: 400 })
