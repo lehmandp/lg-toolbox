@@ -33,13 +33,25 @@ export default function EngineAIWidget({context}:{context:Context}){
    let engineContext:unknown=undefined
    if(useData && context==='Realtor Partner Engine'){
      try{
-       const raw=window.localStorage.getItem('lg_realtor_partner_engine_v1')
-       const data=raw?JSON.parse(raw):{}
-       const prospects=Array.isArray(data.prospects)?data.prospects:[]
-       const secondary=Array.isArray(data.secondary)?data.secondary:[]
-       const primary=Array.isArray(data.primary)?data.primary:[]
-       engineContext={source:'Realtor Partner Engine browser-local snapshot',prospectCount:prospects.length,secondaryCount:secondary.length,primaryCount:primary.length,prospectStages:[0,1,2,3,4].map(stage=>({stage,count:prospects.filter((x:{stage?:number})=>x.stage===stage).length})),secondaryGroups:['Bus','BU','Prog'].map(group=>({group,count:secondary.filter((x:{group?:string})=>x.group===group).length})),primaryTiers:['A','B','C'].map(tier=>({tier,count:primary.filter((x:{tier?:string})=>x.tier===tier).length}))}
-     }catch{setError('Realtor data could not be read.')}
+       const key='lg_realtor_partner_engine_v1'
+       const cloud=window.localStorage.getItem(key+'_data_source')==='cloud'&&!window.localStorage.getItem(key+'_unsynced')
+       let prospects:Record<string,unknown>[]=[],secondary:Record<string,unknown>[]=[],primary:Record<string,unknown>[]=[]
+       if(cloud){
+        const response=await fetch('/api/realtor-partner-engine/records',{cache:'no-store'})
+        if(!response.ok)throw new Error('Unable to read cloud Realtor records')
+        const rows=(await response.json()).rows as Record<string,unknown>[]
+        prospects=rows.filter(x=>x.relationship_level==='prospect').map(x=>({stage:x.prospect_stage}))
+        secondary=rows.filter(x=>x.relationship_level==='secondary').map(x=>({group:x.secondary_group}))
+        primary=rows.filter(x=>x.relationship_level==='primary').map(x=>({tier:x.primary_tier}))
+       }else{
+        const raw=window.localStorage.getItem(key+'_unsynced')||window.localStorage.getItem(key)
+        const data=raw?JSON.parse(raw):{}
+        prospects=Array.isArray(data.prospects)?data.prospects:[]
+        secondary=Array.isArray(data.secondary)?data.secondary:[]
+        primary=Array.isArray(data.primary)?data.primary:[]
+       }
+       engineContext={source:cloud?'Realtor Partner Engine cloud snapshot':'Realtor Partner Engine browser-local snapshot',prospectCount:prospects.length,secondaryCount:secondary.length,primaryCount:primary.length,prospectStages:[0,1,2,3,4].map(stage=>({stage,count:prospects.filter((x:{stage?:number})=>x.stage===stage).length})),secondaryGroups:['Bus','BU','Prog'].map(group=>({group,count:secondary.filter((x:{group?:string})=>x.group===group).length})),primaryTiers:['A','B','C'].map(tier=>({tier,count:primary.filter((x:{tier?:string})=>x.tier===tier).length}))}
+     }catch{throw Error('Realtor data could not be read. Chat was not sent.')}
    }
    const res=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversationId:currentId,mode,messages:next.slice(-16),engine:useData?(context==='Originator Engine'?'originator':'realtor'):undefined,engineContext,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone})})
    const data=await res.json()
