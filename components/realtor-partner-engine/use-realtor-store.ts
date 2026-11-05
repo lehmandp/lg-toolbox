@@ -131,5 +131,22 @@ export function useRealtorStore(){
    setError('Imported '+result.imported+' missing records. '+result.skipped+' matching IDs were left unchanged. Check both copies before deleting any backups.')
   }catch(e){setError(e instanceof Error?e.message:'Import failed')}
  }
- return {data,setData,loaded,mode,error,cloudCount,exportData,useCloud,importMissing}
+ async function importBackupFile(file:File){
+  try{
+   const uploaded=JSON.parse(await file.text()) as Store
+   if(!Array.isArray(uploaded.prospects)||!Array.isArray(uploaded.secondary)||!Array.isArray(uploaded.primary))throw Error('Invalid Realtor backup file')
+   const rows=rowsFromStore(uploaded)
+   if(!rows.length){setError('The backup contains no Realtor records.');return}
+   if(!window.confirm('Import up to '+rows.length+' Realtor records from this backup? Existing cloud IDs will be skipped, never overwritten. Keep the backup for manual reconciliation.'))return
+   const r=await fetch('/api/realtor-partner-engine/records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmMissingOnly:true,rows})})
+   const result=await r.json()
+   if(!r.ok)throw Error(result.error||'Backup import failed')
+   const cloud=await refreshCloud()
+   preserveDraft()
+   localStorage.setItem(SOURCE,'cloud')
+   setData(cloud);setMode('cloud')
+   setError('Imported '+result.imported+' records from backup; '+result.skipped+' matched existing cloud entries and were skipped. Keep the original backup.')
+  }catch(e){setError(e instanceof Error?e.message:'Backup import failed')}
+ }
+ return {data,setData,loaded,mode,error,cloudCount,exportData,useCloud,importMissing,importBackupFile}
 }
