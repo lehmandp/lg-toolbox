@@ -35,14 +35,14 @@ export default function EngineAIWidget({context}:{context:Context}){
      try{
        const key='lg_realtor_partner_engine_v1'
        const cloud=window.localStorage.getItem(key+'_data_source')==='cloud'&&!window.localStorage.getItem(key+'_unsynced')
-       let prospects:Record<string,unknown>[]=[],secondary:Record<string,unknown>[]=[],primary:Record<string,unknown>[]=[]
+       let prospects:{stage?:number}[]=[],secondary:{group?:string}[]=[],primary:{tier?:string}[]=[]
        if(cloud){
         const response=await fetch('/api/realtor-partner-engine/records',{cache:'no-store'})
         if(!response.ok)throw new Error('Unable to read cloud Realtor records')
         const rows=(await response.json()).rows as Record<string,unknown>[]
-        prospects=rows.filter(x=>x.relationship_level==='prospect').map(x=>({stage:x.prospect_stage}))
-        secondary=rows.filter(x=>x.relationship_level==='secondary').map(x=>({group:x.secondary_group}))
-        primary=rows.filter(x=>x.relationship_level==='primary').map(x=>({tier:x.primary_tier}))
+        prospects=rows.filter(x=>x.relationship_level==='prospect').map(x=>({stage:Number(x.prospect_stage??0)}))
+        secondary=rows.filter(x=>x.relationship_level==='secondary').map(x=>({group:String(x.secondary_group??'')}))
+        primary=rows.filter(x=>x.relationship_level==='primary').map(x=>({tier:String(x.primary_tier??'')}))
        }else{
         const raw=window.localStorage.getItem(key+'_unsynced')||window.localStorage.getItem(key)
         const data=raw?JSON.parse(raw):{}
