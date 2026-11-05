@@ -1,16 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useRealtorStore, type Prospect, type Secondary, type Primary } from './use-realtor-store'
 
 type View = 'dashboard' | 'prospects' | 'secondary' | 'primary' | 'process'
 type ModalType = 'prospect' | 'secondary' | 'primary'
-type Prospect = { id:string; name:string; company:string; phone:string; email:string; production:number|null; notes:string; stage:number }
-type Secondary = { id:string; group:'Bus'|'BU'|'Prog'; name:string; phone:string; email:string; count:number|null; notes:string; lastTouch:string; nextAction:string }
-type Primary = { id:string; tier:'A'|'B'|'C'; name:string; phone:string; email:string; birthday:string; tie:string; families:number|null; lastTouch:string; nextAction:string }
-type Store = { prospects:Prospect[]; secondary:Secondary[]; primary:Primary[] }
-
-const KEY = 'lg_realtor_partner_engine_v1'
-const EMPTY: Store = { prospects:[], secondary:[], primary:[] }
 const input = 'rounded-[10px] border border-[#d8dee8] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#1f4b7a]'
 const mini = 'rounded-[9px] border border-[#d8dee8] bg-white px-3 py-2 text-xs font-extrabold'
 const miniPrimary = 'rounded-[9px] border border-[#1f4b7a] bg-[#1f4b7a] px-3 py-2 text-xs font-extrabold text-white'
@@ -21,8 +15,7 @@ function stageLabel(stage:number){ return ['Not started','Initial contact','Meet
 
 export default function RealtorPartnerEngine() {
   const [view,setView] = useState<View>('dashboard')
-  const [data,setData] = useState<Store>(EMPTY)
-  const [loaded,setLoaded] = useState(false)
+  const {data,setData,mode,error,cloudCount,exportData,useCloud,importMissing} = useRealtorStore()
   const [modal,setModal] = useState<ModalType|null>(null)
   const [prospectSearch,setProspectSearch] = useState('')
   const [prospectStage,setProspectStage] = useState('all')
@@ -30,19 +23,6 @@ export default function RealtorPartnerEngine() {
   const [secondaryGroup,setSecondaryGroup] = useState('all')
   const [primarySearch,setPrimarySearch] = useState('')
   const [primaryTier,setPrimaryTier] = useState('all')
-
-  useEffect(()=>{
-    try {
-      const saved = window.localStorage.getItem(KEY)
-      if (saved) setData(JSON.parse(saved) as Store)
-    } catch {}
-    setLoaded(true)
-  },[])
-
-  useEffect(()=>{
-    if (!loaded) return
-    window.localStorage.setItem(KEY, JSON.stringify(data))
-  },[data,loaded])
 
   const activeTouches = data.prospects.filter(x=>x.stage>0).length
   const relationshipPotential = ((data.secondary.length + data.primary.length) * 0.1875).toFixed(1)
@@ -74,7 +54,7 @@ export default function RealtorPartnerEngine() {
     if(!source)return
     const group=(window.prompt('Secondary classification: Bus, BU, or Prog','Prog')||'').trim()
     if(!['Bus','BU','Prog'].includes(group))return
-    const row:Secondary={id:newId(),group:group as Secondary['group'],name:source.name,phone:source.phone,email:source.email,count:source.production,notes:source.notes,lastTouch:'',nextAction:''}
+    const row:Secondary={id:source.id,group:group as Secondary['group'],name:source.name,phone:source.phone,email:source.email,count:source.production,notes:source.notes,lastTouch:'',nextAction:''}
     setData(d=>({...d,prospects:d.prospects.filter(p=>p.id!==id),secondary:[...d.secondary,row]}))
     setView('secondary')
   }
@@ -84,7 +64,7 @@ export default function RealtorPartnerEngine() {
     if(!source)return
     const tier=(window.prompt('Primary tier: A, B, or C','C')||'').trim().toUpperCase()
     if(!['A','B','C'].includes(tier))return
-    const row:Primary={id:newId(),tier:tier as Primary['tier'],name:source.name,phone:source.phone,email:source.email,birthday:'',tie:source.group,families:source.count,lastTouch:source.lastTouch,nextAction:source.nextAction}
+    const row:Primary={id:source.id,tier:tier as Primary['tier'],name:source.name,phone:source.phone,email:source.email,birthday:'',tie:source.group,families:source.count,lastTouch:source.lastTouch,nextAction:source.nextAction}
     setData(d=>({...d,secondary:d.secondary.filter(p=>p.id!==id),primary:[...d.primary,row]}))
     setView('primary')
   }
@@ -92,20 +72,11 @@ export default function RealtorPartnerEngine() {
   function demoteSecondary(id:string){
     const source=data.primary.find(p=>p.id===id)
     if(!source)return
-    const row:Secondary={id:newId(),group:'BU',name:source.name,phone:source.phone,email:source.email,count:source.families,notes:'Moved from Primary',lastTouch:source.lastTouch,nextAction:source.nextAction}
+    const row:Secondary={id:source.id,group:'BU',name:source.name,phone:source.phone,email:source.email,count:source.families,notes:'Moved from Primary',lastTouch:source.lastTouch,nextAction:source.nextAction}
     setData(d=>({...d,primary:d.primary.filter(p=>p.id!==id),secondary:[...d.secondary,row]}))
     setView('secondary')
   }
 
-  function exportData(){
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'})
-    const url=URL.createObjectURL(blob)
-    const a=document.createElement('a')
-    a.href=url
-    a.download='realtor-partner-engine-data.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
   return (
     <main className="mx-auto max-w-[1220px] p-[22px] text-[#1f2937]">
@@ -128,6 +99,14 @@ export default function RealtorPartnerEngine() {
         </div>
       </div>
 
+{mode!=='cloud'&&<div className="mb-4 rounded-xl border border-[#c68d4a] bg-[#fffaf0] p-4 text-sm">
+    <strong>Data safety: {mode==='loading'?'Checking secure cloud records…':mode==='offline'?'Cloud unavailable':mode==='conflict'?'Browser and cloud records both exist':'Browser-only records found'}</strong>
+    <p className="my-2 text-xs">Your browser records are not automatically merged or deleted. {cloudCount} records exist in your secure cloud database. Export your current records before switching sources.</p>
+    <div className="flex flex-wrap gap-2"><button type="button" onClick={exportData} className={mini}>Download browser backup</button>
+    {mode==='conflict'&&<button type="button" onClick={useCloud} className={mini}>Use cloud records (keep browser backup)</button>}
+    {(mode==='conflict'||mode==='local-import')&&<button type="button" onClick={()=>void importMissing()} className={miniPrimary}>Import missing browser records</button>}</div>
+    </div>}
+    {error&&<p role="alert" className="mb-3 rounded-lg border border-[#e7c8a5] bg-[#fffaf4] p-3 text-xs">{error}</p>}
       {view==='dashboard' && <>
         <PageHead eyebrow="Relationship Pipeline" title="Realtor Partner Engine" copy="Build a deliberate agent prospecting pipeline, earn a place on the lender roster, and develop relationships from prospect to secondary resource to primary lender." />
         <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
