@@ -60,10 +60,20 @@ export async function POST(request:Request){
  if(!body||body.confirmMissingOnly!==true||!Array.isArray(body.rows)||body.rows.length>500)return NextResponse.json({error:'Explicit import confirmation required'},{status:400})
  let rows:ReturnType<typeof normalize>[]
  try{rows=body.rows.map((x:unknown)=>normalize(x as Row))}catch{return NextResponse.json({error:'Invalid import data'},{status:400})}
- const {data:existing,error:lookupError}=await db.from('realtor_relationships').select('client_id').eq('user_id',user.id).limit(2000)
+ const {data:existing,error:lookupError}=await db.from('realtor_relationships').select('client_id,name,email,phone').eq('user_id',user.id).limit(2000)
  if(lookupError)return NextResponse.json({error:'Could not verify cloud records'},{status:500})
  const seen=new Set((existing??[]).map(x=>x.client_id))
- const missing=rows.filter(x=>{if(seen.has(x.client_id))return false;seen.add(x.client_id);return true})
+ const existingEmails=new Set((existing??[]).map(x=>x.email?.trim().toLowerCase()).filter(Boolean))
+ const existingIdentities=new Set((existing??[]).filter(x=>x.name&&x.phone).map(x=>x.name.trim().toLowerCase()+'|'+x.phone.trim()))
+ const missing=rows.filter(x=>{
+  const email=x.email.trim().toLowerCase()
+  const identity=x.name.trim().toLowerCase()+'|'+x.phone.trim()
+  if(seen.has(x.client_id)||(email&&existingEmails.has(email))||(x.phone&&existingIdentities.has(identity)))return false
+  seen.add(x.client_id)
+  if(email)existingEmails.add(email)
+  if(x.phone)existingIdentities.add(identity)
+  return true
+ })
  if(!missing.length)return NextResponse.json({imported:0,skipped:rows.length})
  const {error}=await db.from('realtor_relationships').insert(missing.map(x=>({...x,user_id:user.id})))
  if(error)return NextResponse.json({error:'Import could not be completed; refresh to review records'},{status:409})
