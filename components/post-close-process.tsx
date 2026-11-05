@@ -1,6 +1,5 @@
 'use client'
 import {useEffect,useRef,useState} from 'react'
-import Link from 'next/link'
 type Template={subject:string;html:string}
 const REVIEW='__REVIEW_LINK__'
 const templates:Record<string,Template>={
@@ -81,8 +80,10 @@ export default function PostCloseProcess(){
  const card='rounded-2xl border border-[#d8dee8] bg-white p-[18px]'
  const tab=(active:boolean)=>'rounded-[9px] px-3 py-2 text-xs font-extrabold transition-colors '+(active?'bg-[#1f4b7a] text-white':'text-[#1f2937] hover:bg-[#eef4fa]')
  return <div className="min-h-screen bg-[#f5f7fa] text-[#1f2937]"><main className="w-full p-[22px] space-y-4">
- <div className="mb-[18px] flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[#d8dee8] bg-white px-3 py-2.5"><div className="text-sm font-black">Post Close Process</div><div className="flex items-center flex-wrap gap-2">{profile.logo_url&&<img alt="Company logo" src={profile.logo_url} className="max-w-24 max-h-9 object-contain"/>}<Link href="/settings" className="rounded-[10px] border border-[#d8dee8] px-3 py-2 text-xs font-extrabold">Settings</Link></div></div>
- <nav className="flex flex-wrap gap-1.5 rounded-[14px] border border-[#d8dee8] bg-white p-3" aria-label="Process stages">{stageTabs.map(([id,label])=><button key={id} onClick={()=>setStage(id)} className={tab(stage===id)}>{label}</button>)}</nav>
+ <div className="mb-[18px] flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[#d8dee8] bg-white px-3 py-2.5">
+   <div className="text-sm font-black whitespace-nowrap">Post Close Process</div>
+   <nav className="flex flex-wrap items-center justify-end gap-1.5" aria-label="Process stages">{stageTabs.map(([id,label])=><button key={id} onClick={()=>setStage(id)} className={tab(stage===id)}>{label}</button>)}</nav>
+ </div>
  {stage==='post'&&<><div><h2 className="text-[25px] font-extrabold">Post-Close Finalization</h2><p className="text-sm text-[#777]">Closeout starts next business day. Calls and emails occur during the weekly database block.</p></div><nav className="flex flex-wrap gap-1.5 rounded-xl border border-[#d8dee8] bg-white p-3">{[['file','1. Close File'],['client','2. Client Call'],['agent','3. Agent Calls']].map(([id,l])=><button key={id} onClick={()=>setPost(id)} className={tab(post===id)}>{l}</button>)}</nav>
  {post==='file'&&<section className={card}><h3 className="text-xl font-extrabold mb-3">File Closeout</h3><Check items={postCheck.file}/></section>}
  {post==='client'&&<><section className={card}><h3 className="text-xl font-extrabold mb-3">Client Call — Talking Points</h3><Check items={postCheck.client}/></section><Email id="buyer" reviewUrl={reviewUrl}/></>}
