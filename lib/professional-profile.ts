@@ -14,6 +14,7 @@ export type ProfessionalProfile = {
   license_state: string
   license_number: string
   tagline: string
+  review_url: string
   disclosure: string
   logo_url: string
   headshot_url: string
@@ -23,7 +24,7 @@ export type ProfessionalProfile = {
 export const emptyProfessionalProfile: ProfessionalProfile = {
   full_name: '', company: '', nmls: '', company_nmls: '', phone: '', email: '',
   website: '', business_address: '', license_state: '', license_number: '',
-  tagline: '', disclosure: '', logo_url: '', headshot_url: '', branding_default: 'logo'
+  tagline: '', review_url: '', disclosure: '', logo_url: '', headshot_url: '', branding_default: 'logo'
 }
 
 /** Read the current user's common branding for server-rendered forms and exports.
