@@ -9,6 +9,7 @@ export default function ProfileSettings(){
  const [checking,setChecking]=useState(true)
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState('')
+ const [uploading,setUploading]=useState<'logo'|'headshot'|null>(null)
  useEffect(()=>{fetch('/api/ai/settings').then(r=>r.json()).then(d=>setConnected(d.connected===true)).catch(()=>{}).finally(()=>setChecking(false)) ;fetch('/api/profile').then(r=>r.json()).then(d=>{if(d.profile)setProfile({...empty,...d.profile})}).catch(()=>{})},[])
  function field(k:keyof Profile,label:string,placeholder=''){return <label className="block text-xs font-medium">{label}<input className="mt-2 w-full border border-border-input bg-white p-3 text-sm" placeholder={placeholder} value={profile[k]} onChange={e=>setProfile(p=>({...p,[k]:e.target.value}))}/></label>}
  async function saveProfile(){
