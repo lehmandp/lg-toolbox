@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Header from '@/components/header'
+import EngineAIWidget from '@/components/engine-ai-widget'
 import OriginatorEngineActivity from '@/components/originator-engine/activity'
 import { getViewer } from '@/lib/auth'
 
@@ -13,6 +14,7 @@ export default async function OriginatorEnginePage() {
     <div className="min-h-screen bg-[#f5f7fa]">
       <Header isAdmin={viewer.isAdmin} />
       <OriginatorEngineActivity />
+      <EngineAIWidget context="Originator Engine" />
     </div>
   )
 }
