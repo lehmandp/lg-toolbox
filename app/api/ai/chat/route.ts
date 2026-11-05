@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { decryptKey } from '@/lib/ai/crypto'
 import { DEFAULT_SETTINGS } from '@/components/originator-engine/storage'
+import { localCalendar } from '@/lib/ai/local-calendar'
 
 const playbook = `You are Toolbox AI, the practical, honest mortgage-originator business assistant embedded in LG Loan Toolbox.
 Prioritize revenue-generating outreach and meaningful conversations. Coach measurable commitments and a daily prospecting plan.
@@ -37,10 +38,11 @@ export async function POST(request:Request) {
   try{apiKey=decryptKey(setting.api_key_encrypted)}catch{return NextResponse.json({error:'Unable to decrypt key'},{status:503})}
   const {data:catalog}=await db.from('tools').select('name,description,category,tool_type,monthly_price,tool_url').eq('published',true).limit(100)
   const catalogSummary=JSON.stringify((catalog??[]).map(t=>({name:t.name,description:String(t.description??'').slice(0,250),category:t.category,access:t.tool_type,paid:Number(t.monthly_price)>0,url:t.tool_url})))
-  let contextNote=''
+  const zone=typeof body.timeZone==='string'&&body.timeZone.length<100?body.timeZone:'UTC'
+  const calendar=localCalendar(zone)
+  let contextNote='\nCurrent business calendar: '+JSON.stringify(calendar)+'. Today and tomorrow ALWAYS refer to these local calendar dates. Never infer the weekday from UTC server time.'
   if(body.engine==='originator' && body.mode==='Originator Coach'){
-    const monday=new Date();monday.setUTCDate(monday.getUTCDate()-(monday.getUTCDay()+6)%7);monday.setUTCHours(0,0,0,0)
-    const start=monday.toISOString().slice(0,10)
+    const start=calendar.weekStarting
     const [activity,settings]=await Promise.all([
       db.from('originator_engine_activity_entries').select('activity_date,metrics').eq('user_id',user.id).gte('activity_date',start).limit(1000),
       db.from('originator_engine_settings').select('settings').eq('user_id',user.id).maybeSingle()
