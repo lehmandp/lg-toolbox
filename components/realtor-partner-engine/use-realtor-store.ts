@@ -108,6 +108,15 @@ export function useRealtorStore(){
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'})
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='realtor-partner-engine-backup.json';a.click();URL.revokeObjectURL(url)
  }
+ function exportCsv(){
+  const header=['Level','Name','Company','Phone','Email','Production','Prospect Stage','Secondary Group','Primary Tier','Birthday','Partnership Tie','Last Touch','Next Action','Notes']
+  const values=rowsFromStore(data).map(r=>[r.relationship_level,r.name,r.company,r.phone,r.email,r.production,r.prospect_stage,r.secondary_group,r.primary_tier,r.birthday,r.partnership_tie,r.last_touch,r.next_action,r.notes])
+  const escape=(value:unknown)=>'"'+String(value??'').replaceAll('"','""')+'"'
+  const csv='\\uFEFF'+[header,...values].map(row=>row.map(escape).join(',')).join('\\r\\n')
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'})
+  const url=URL.createObjectURL(blob)
+  const link=document.createElement('a');link.href=url;link.download='realtor-partner-engine-export.csv';link.click();URL.revokeObjectURL(url)
+ }
  function preserveDraft(){
   const draft=localStorage.getItem(UNSYNCED)
   if(draft){localStorage.setItem(KEY+'_recovery_'+Date.now(),draft);localStorage.removeItem(UNSYNCED)}
@@ -148,5 +157,5 @@ export function useRealtorStore(){
    setError('Imported '+result.imported+' records from backup; '+result.skipped+' matched existing cloud entries and were skipped. Keep the original backup.')
   }catch(e){setError(e instanceof Error?e.message:'Backup import failed')}
  }
- return {data,setData,loaded,mode,error,cloudCount,exportData,useCloud,importMissing,importBackupFile}
+ return {data,setData,loaded,mode,error,cloudCount,exportData,exportCsv,useCloud,importMissing,importBackupFile}
 }
