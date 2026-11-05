@@ -100,7 +100,7 @@ export function useRealtorStore(){
      const unsaved=rowsFromStore(latestDataRef.current).some(r=>saved.current.get(r.client_id)!==JSON.stringify(r))
      if(!unsaved)localStorage.removeItem(UNSYNCED)
     }
-   }).catch(e=>{setError((e instanceof Error?e.message:'Cloud save failed')+' Your unsynced draft remains in this browser.');setMode('offline')})
+   }).catch(e=>{modeRef.current='offline';setError((e instanceof Error?e.message:'Cloud save failed')+' Your unsynced draft remains in this browser.');setMode('offline')})
   },650)
   return()=>clearTimeout(timer)
  },[data,loaded,mode])
@@ -108,10 +108,14 @@ export function useRealtorStore(){
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'})
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='realtor-partner-engine-backup.json';a.click();URL.revokeObjectURL(url)
  }
+ function preserveDraft(){
+  const draft=localStorage.getItem(UNSYNCED)
+  if(draft){localStorage.setItem(KEY+'_recovery_'+Date.now(),draft);localStorage.removeItem(UNSYNCED)}
+ }
  function useCloud(){
-  // Cloud wins only when the user chooses it; browser backup is retained unchanged.
+  // Switching to cloud preserves both original browser data and any unsynced draft.
+  try{preserveDraft()}catch{setError('Cannot preserve the unsynced browser draft. Export it before switching.');return}
   localStorage.setItem(SOURCE,'cloud')
-  localStorage.removeItem(UNSYNCED)
   setData(cloudRef.current);setError('');setMode('cloud')
  }
  async function importMissing(){
@@ -122,7 +126,7 @@ export function useRealtorStore(){
    const result=await r.json()
    if(!r.ok)throw Error(result.error||'Import failed')
    const cloud=await refreshCloud()
-   localStorage.setItem(SOURCE,'cloud');localStorage.removeItem(UNSYNCED)
+   preserveDraft();localStorage.setItem(SOURCE,'cloud')
    setData(cloud);setMode('cloud')
    setError('Imported '+result.imported+' missing records. '+result.skipped+' matching IDs were left unchanged. Check both copies before deleting any backups.')
   }catch(e){setError(e instanceof Error?e.message:'Import failed')}
