@@ -41,7 +41,7 @@ export default function EngineAIWidget({context}:{context:Context}){
        engineContext={source:'Realtor Partner Engine browser-local snapshot',prospectCount:prospects.length,secondaryCount:secondary.length,primaryCount:primary.length,prospectStages:[0,1,2,3,4].map(stage=>({stage,count:prospects.filter((x:{stage?:number})=>x.stage===stage).length})),secondaryGroups:['Bus','BU','Prog'].map(group=>({group,count:secondary.filter((x:{group?:string})=>x.group===group).length})),primaryTiers:['A','B','C'].map(tier=>({tier,count:primary.filter((x:{tier?:string})=>x.tier===tier).length}))}
      }catch{setError('Realtor data could not be read.')}
    }
-   const res=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversationId:currentId,mode,messages:next.slice(-16),engine:useData?(context==='Originator Engine'?'originator':'realtor'):undefined,engineContext})})
+   const res=await fetch('/api/ai/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversationId:currentId,mode,messages:next.slice(-16),engine:useData?(context==='Originator Engine'?'originator':'realtor'):undefined,engineContext,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone})})
    const data=await res.json()
    if(!res.ok)throw Error(data.error||'AI request failed')
    setMessages([...next,{role:'assistant',content:data.reply}])
