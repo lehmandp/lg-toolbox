@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-type Profile={full_name:string;company:string;nmls:string;company_nmls:string;phone:string;email:string;website:string;business_address:string;license_state:string;license_number:string;tagline:string;disclosure:string;logo_url:string;headshot_url:string;branding_default:'logo'|'headshot'|'both'|'none'}
-const empty:Profile={full_name:'',company:'',nmls:'',company_nmls:'',phone:'',email:'',website:'',business_address:'',license_state:'',license_number:'',tagline:'',disclosure:'',logo_url:'',headshot_url:'',branding_default:'logo'}
+type Profile={full_name:string;company:string;nmls:string;company_nmls:string;phone:string;email:string;website:string;business_address:string;license_state:string;license_number:string;tagline:string;review_url:string;disclosure:string;logo_url:string;headshot_url:string;branding_default:'logo'|'headshot'|'both'|'none'}
+const empty:Profile={full_name:'',company:'',nmls:'',company_nmls:'',phone:'',email:'',website:'',business_address:'',license_state:'',license_number:'',tagline:'',review_url:'',disclosure:'',logo_url:'',headshot_url:'',branding_default:'logo'}
 export default function ProfileSettings(){
  const [profile,setProfile]=useState<Profile>(empty)
  const [apiKey,setApiKey]=useState('')
@@ -54,6 +54,7 @@ export default function ProfileSettings(){
     {field('license_state','License state')}
     {field('license_number','State license number')}
     {field('tagline','Tagline')}
+    <div className="sm:col-span-2">{field('review_url','Google review link','https://g.page/r/.../review')}<p className="mt-2 text-xs text-muted-foreground">Paste your direct Google review link. Email and document templates can use this URL for a clickable review request.</p>{profile.review_url&&/^https:\/\//i.test(profile.review_url)&&<a href={profile.review_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-medium underline">Test review link ↗</a>}</div>
    </div>
    <label className="mt-5 block text-xs font-medium">Default disclosures
     <textarea rows={3} maxLength={2000} value={profile.disclosure} onChange={e=>setProfile(p=>({...p,disclosure:e.target.value}))} className="mt-2 w-full border border-border-input bg-white p-3 text-sm" placeholder="Business licensing and required disclosure language" />
