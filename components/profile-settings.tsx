@@ -54,7 +54,7 @@ export default function ProfileSettings(){
     {field('license_state','License state')}
     {field('license_number','State license number')}
     {field('tagline','Tagline')}
-    <div className="sm:col-span-2">{field('review_url','Google review link','https://g.page/r/.../review')}<p className="mt-2 text-xs text-muted-foreground">Paste your direct Google review link. Email and document templates can use this URL for a clickable review request.</p>{profile.review_url&&/^https:\/\//i.test(profile.review_url)&&<a href={profile.review_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-medium underline">Test review link ↗</a>}</div>
+    <div className="sm:col-span-2">{field('review_url','Review URL','https://example.com/reviews')}<p className="mt-2 text-xs text-muted-foreground">Paste a Google, Yelp, or other review page URL. Email and document templates can use this link for review requests.</p>{profile.review_url&&/^https?:\/\//i.test(profile.review_url)&&<a href={profile.review_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs font-medium underline">Test review link ↗</a>}</div>
    </div>
    <label className="mt-5 block text-xs font-medium">Default disclosures
     <textarea rows={3} maxLength={2000} value={profile.disclosure} onChange={e=>setProfile(p=>({...p,disclosure:e.target.value}))} className="mt-2 w-full border border-border-input bg-white p-3 text-sm" placeholder="Business licensing and required disclosure language" />
