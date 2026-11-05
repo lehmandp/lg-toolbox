@@ -1,12 +1,13 @@
 import {NextResponse} from 'next/server'
 import {createClient} from '@/lib/supabase/server'
+import {localCalendar} from '@/lib/ai/local-calendar'
 const metrics=['face','bread','calls','events','content','cards','gifts','newRealtors','newOffices','newVips','leads','deals'] as const
-export async function GET(){
+export async function GET(request:Request){
  const db=await createClient()
  const {data:{user}}=await db.auth.getUser()
  if(!user)return NextResponse.json({error:'Unauthorized'},{status:401})
- const monday=new Date();const offset=(monday.getUTCDay()+6)%7;monday.setUTCDate(monday.getUTCDate()-offset);monday.setUTCHours(0,0,0,0)
- const start=monday.toISOString().slice(0,10)
+ const zone=new URL(request.url).searchParams.get('timeZone')||'UTC'
+ const start=localCalendar(zone).weekStarting
  const [activity,settings]=await Promise.all([
  db.from('originator_engine_activity_entries').select('activity_date,metrics').eq('user_id',user.id).gte('activity_date',start).limit(1000),
  db.from('originator_engine_settings').select('settings').eq('user_id',user.id).maybeSingle()
