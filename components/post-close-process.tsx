@@ -22,7 +22,7 @@ const templates:Record<string,Template>={
 '<p><strong>We see our job as helping you MANAGE your mortgage, not just helping you get one.</strong> We want to make sure it continues to work well for you and that you always have someone to turn to.</p>',
 "<p>Here's how we'll stay connected:</p>",
 '<ul><li><strong>Home Report:</strong> Ongoing updates about your home’s estimated value, equity, and the mortgage market.</li><li><strong>Mortgage Monitoring:</strong> We’ll monitor your mortgage through Strike Price for opportunities to improve your rate, payment, or overall situation.</li><li><strong>Annual Homeownership Review:</strong> Each year, we’ll review your mortgage, property taxes, insurance, homeownership expenses, and future goals to see if anything needs attention.</li></ul>',
-"And if your payment, taxes, or insurance change unexpectedly, don't wait for your annual review. Give us a call!",
+"<p>And if your payment, taxes, or insurance change unexpectedly, don't wait for your annual review. Give us a call!</p>",
 '<h3>Your Financial Team &amp; Resources</h3>',
 "<p>As discussed, we believe it's important to build a trusted Financial Team of professionals who can help you both <strong>grow and protect your assets</strong>.</p>",
 '<p>This includes your Realtor, mortgage lender, financial planner, CPA, insurance professional, and estate-planning attorney. Each plays an important role in helping you build and protect your financial future.</p>',
@@ -77,7 +77,7 @@ const stageTabs=[['post','Post-Close'],['day30','30-Day'],['month6','6-Month'],[
 export default function PostCloseProcess(){
  const [stage,setStage]=useState('post'),[post,setPost]=useState('file'),[annual,setAnnual]=useState('schedule'),[agent,setAgent]=useState('first'),[profile,setProfile]=useState<{review_url?:string;logo_url?:string;company?:string}>({})
  useEffect(()=>{fetch('/api/profile',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(d?.profile)setProfile(d.profile)}).catch(()=>{})},[])
- const reviewUrl=safeUrl(profile.review_url||'')
+ const reviewUrl=safeUrl(profile.review_url||'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll("'",'&#39;')
  const card='border border-[#e6e3de] bg-white p-5 md:p-7'
  const tab=(active:boolean)=>'px-4 py-3 text-sm font-semibold border-b-2 '+(active?'border-[#a26028] text-[#a26028]':'border-transparent text-[#6e706c]')
  return <div className="min-h-screen bg-[#f5f5f5] text-[#252525]"><main className="mx-auto max-w-6xl px-4 md:px-8 py-8 space-y-5">
