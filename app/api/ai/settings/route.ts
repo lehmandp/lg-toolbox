@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { encryptKey } from '@/lib/ai/crypto'
+import { encryptKey, decryptKey } from '@/lib/ai/crypto'
 
 export async function GET() {
   const db=await createClient()
   const {data:{user}}=await db.auth.getUser()
   if(!user)return NextResponse.json({authenticated:false,connected:false})
-  const {data,error}=await db.from('ai_user_settings').select('user_id').eq('user_id',user.id).maybeSingle()
+  const {data,error}=await db.from('ai_user_settings').select('api_key_encrypted').eq('user_id',user.id).maybeSingle()
   if(error)return NextResponse.json({error:'AI settings unavailable. Apply the AI database migration.'},{status:503})
-  return NextResponse.json({authenticated:true,connected:!!data})
+  if(!data)return NextResponse.json({authenticated:true,connected:false})
+  try{decryptKey(data.api_key_encrypted);return NextResponse.json({authenticated:true,connected:true})}
+  catch{return NextResponse.json({authenticated:true,connected:false,needsReconnect:true})}
 }
 export async function POST(request:Request) {
   const db=await createClient()
