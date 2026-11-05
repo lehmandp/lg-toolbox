@@ -15,7 +15,7 @@ function stageLabel(stage:number){ return ['Not started','Initial contact','Meet
 
 export default function RealtorPartnerEngine() {
   const [view,setView] = useState<View>('dashboard')
-  const {data,setData,mode,error,cloudCount,exportData,useCloud,importMissing,importBackupFile} = useRealtorStore()
+  const {data,setData,mode,error,cloudCount,exportData,exportCsv,useCloud,importMissing,importBackupFile} = useRealtorStore()
   const [modal,setModal] = useState<ModalType|null>(null)
   const [prospectSearch,setProspectSearch] = useState('')
   const [prospectStage,setProspectStage] = useState('all')
@@ -95,6 +95,7 @@ export default function RealtorPartnerEngine() {
         </nav>
         <div className="flex gap-2">
           <button onClick={exportData} className="rounded-[10px] border border-[#d8dee8] bg-white px-3 py-2 text-xs font-extrabold">Export</button>
+          <button onClick={exportCsv} className="rounded-[10px] border border-[#d8dee8] bg-white px-3 py-2 text-xs font-extrabold">Export CSV</button>
           <label className="cursor-pointer rounded-[10px] border border-[#d8dee8] bg-white px-3 py-2 text-xs font-extrabold">Import backup<input className="sr-only" type="file" accept=".json,application/json" onChange={e=>{const file=e.target.files?.[0];if(file)void importBackupFile(file);e.currentTarget.value=''}}/></label>
           <button onClick={()=>setModal('prospect')} className="rounded-[10px] bg-[#1f4b7a] px-3 py-2 text-xs font-extrabold text-white">+ Add Agent</button>
         </div>
